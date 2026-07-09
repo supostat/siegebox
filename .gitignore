@@ -1,0 +1,29 @@
+
+
+# dev-workflow (session data)
+.dev-vault/daily/
+.dev-vault/branches/
+.dev-vault/.intelligence.json
+# dev-workflow (stack-detected)
+.DS_Store
+*.swp
+*.swo
+*~
+coverage/
+.env
+.env.*
+.claude
+.dev-vault
+.vscode
+.mcp.json
+CLAUDE.md
+docs
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.csproj.user
+# Unity build artifacts
+Library/
+Temp/
+Logs/
