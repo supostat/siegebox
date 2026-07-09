@@ -31,7 +31,8 @@ namespace Siegebox.Vfs.Tests
         [Test]
         public void NullStream_discards_writes_and_reports_eof_on_read()
         {
-            var stream = new NullStream();
+            var vfs = new VirtualFileSystem();
+            var stream = vfs.Open("/dev/null", OpenMode.ReadWrite, Root);
             var payload = new byte[] { 1, 2, 3, 4 };
             var write = stream.Write(payload, 0, payload.Length);
             Assert.That(write.Status, Is.EqualTo(StreamStatus.Ok));

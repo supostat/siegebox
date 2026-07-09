@@ -69,7 +69,7 @@ namespace Siegebox.Vfs
             {
                 NodeType.Directory => throw new VfsException(VfsError.EISDIR, path),
                 NodeType.Device => OpenDevice(node),
-                NodeType.File => new FileStream(node, mode),
+                NodeType.File => new FileStream(node.Content!, mode),
                 _ => throw new VfsException(VfsError.EINVAL, path)
             };
         }
@@ -112,17 +112,12 @@ namespace Siegebox.Vfs
                 throw new VfsException(VfsError.EISDIR, sourcePath);
             }
 
-            var content = source.SnapshotContent();
+            var content = source.Content?.Snapshot() ?? Array.Empty<byte>();
             var (destinationParent, destinationName) = resolver.ResolveParent(destinationPath, credentials);
             resolver.RequireAccess(destinationParent, credentials, PermissionMode.WriteBit, destinationPath);
             GuardNotExists(destinationParent, destinationName, destinationPath);
 
-            var copy = VfsNode.NewFile(destinationName, credentials.Uid, destinationParent.GroupGid, source.Mode);
-            if (content.Length > 0)
-            {
-                copy.WriteContent(0, content, 0, content.Length);
-            }
-
+            var copy = VfsNode.NewFile(destinationName, credentials.Uid, destinationParent.GroupGid, source.Mode, new FileContent(content));
             Attach(destinationParent, copy);
         }
 
@@ -244,7 +239,7 @@ namespace Siegebox.Vfs
 
         private static int SizeOf(VfsNode node) => node.Type switch
         {
-            NodeType.File => node.ContentLength,
+            NodeType.File => node.Content!.Length,
             NodeType.Symlink => node.SymlinkTarget!.Length,
             NodeType.Directory => node.Children!.Count,
             _ => 0

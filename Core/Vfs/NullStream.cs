@@ -2,7 +2,7 @@ using System;
 
 namespace Siegebox.Vfs
 {
-    public sealed class NullStream : IByteStream
+    internal sealed class NullStream : IByteStream
     {
         public StreamResult Read(byte[] buffer, int offset, int count)
         {

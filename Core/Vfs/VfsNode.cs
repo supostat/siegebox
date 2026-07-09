@@ -5,11 +5,6 @@ namespace Siegebox.Vfs
 {
     internal sealed class VfsNode
     {
-        private const int InitialContentCapacity = 16;
-
-        private byte[] content = Array.Empty<byte>();
-        private int contentLength;
-
         private VfsNode(
             NodeType type,
             string name,
@@ -18,7 +13,8 @@ namespace Siegebox.Vfs
             PermissionMode mode,
             Dictionary<string, VfsNode>? children,
             string? symlinkTarget,
-            DeviceKind? deviceKind)
+            DeviceKind? deviceKind,
+            IFileContent? content)
         {
             Type = type;
             Name = name;
@@ -28,6 +24,7 @@ namespace Siegebox.Vfs
             Children = children;
             SymlinkTarget = symlinkTarget;
             DeviceKind = deviceKind;
+            Content = content;
         }
 
         public NodeType Type { get; }
@@ -48,39 +45,22 @@ namespace Siegebox.Vfs
 
         public DeviceKind? DeviceKind { get; }
 
+        public IFileContent? Content { get; }
+
         public static VfsNode NewFile(string name, int ownerUid, int groupGid, PermissionMode mode)
-            => new VfsNode(NodeType.File, name, ownerUid, groupGid, mode, null, null, null);
+            => NewFile(name, ownerUid, groupGid, mode, new FileContent());
+
+        public static VfsNode NewFile(string name, int ownerUid, int groupGid, PermissionMode mode, IFileContent content)
+            => new VfsNode(NodeType.File, name, ownerUid, groupGid, mode, null, null, null, content);
 
         public static VfsNode NewDirectory(string name, int ownerUid, int groupGid, PermissionMode mode)
-            => new VfsNode(NodeType.Directory, name, ownerUid, groupGid, mode, new Dictionary<string, VfsNode>(StringComparer.Ordinal), null, null);
+            => new VfsNode(NodeType.Directory, name, ownerUid, groupGid, mode, new Dictionary<string, VfsNode>(StringComparer.Ordinal), null, null, null);
 
         public static VfsNode NewSymlink(string name, int ownerUid, int groupGid, PermissionMode mode, string target)
-            => new VfsNode(NodeType.Symlink, name, ownerUid, groupGid, mode, null, target, null);
+            => new VfsNode(NodeType.Symlink, name, ownerUid, groupGid, mode, null, target, null, null);
 
         public static VfsNode NewDevice(string name, int ownerUid, int groupGid, PermissionMode mode, DeviceKind deviceKind)
-            => new VfsNode(NodeType.Device, name, ownerUid, groupGid, mode, null, null, deviceKind);
-
-        public int ContentLength => contentLength;
-
-        public void ReadContent(int sourcePosition, byte[] destination, int destinationOffset, int count)
-            => Array.Copy(content, sourcePosition, destination, destinationOffset, count);
-
-        public void WriteContent(int destinationPosition, byte[] source, int sourceOffset, int count)
-        {
-            EnsureCapacity(destinationPosition + count);
-            Array.Copy(source, sourceOffset, content, destinationPosition, count);
-            if (destinationPosition + count > contentLength)
-            {
-                contentLength = destinationPosition + count;
-            }
-        }
-
-        public byte[] SnapshotContent()
-        {
-            var copy = new byte[contentLength];
-            Array.Copy(content, copy, contentLength);
-            return copy;
-        }
+            => new VfsNode(NodeType.Device, name, ownerUid, groupGid, mode, null, null, deviceKind, null);
 
         public VfsNodeSnapshot ToSnapshot()
         {
@@ -93,7 +73,7 @@ namespace Siegebox.Vfs
                 ModeBits = Mode.Bits,
                 SymlinkTarget = SymlinkTarget,
                 DeviceKind = Type == NodeType.Device ? DeviceKind : null,
-                Content = Type == NodeType.File ? SnapshotContent() : null,
+                Content = Type == NodeType.File ? Content!.Snapshot() : null,
                 Children = Children is null ? null : SnapshotChildren()
             };
         }
@@ -119,22 +99,6 @@ namespace Siegebox.Vfs
             };
         }
 
-        private void EnsureCapacity(int required)
-        {
-            if (content.Length >= required)
-            {
-                return;
-            }
-
-            var capacity = content.Length == 0 ? InitialContentCapacity : content.Length * 2;
-            while (capacity < required)
-            {
-                capacity *= 2;
-            }
-
-            Array.Resize(ref content, capacity);
-        }
-
         private List<VfsNodeSnapshot> SnapshotChildren()
         {
             var children = new List<VfsNodeSnapshot>(Children!.Count);
@@ -154,14 +118,8 @@ namespace Siegebox.Vfs
 
         private static VfsNode RebuildFile(VfsNodeSnapshot snapshot, PermissionMode mode)
         {
-            var node = NewFile(snapshot.Name, snapshot.OwnerUid, snapshot.GroupGid, mode);
-            var content = snapshot.Content;
-            if (content is not null && content.Length > 0)
-            {
-                node.WriteContent(0, content, 0, content.Length);
-            }
-
-            return node;
+            var initialBytes = snapshot.Content ?? Array.Empty<byte>();
+            return NewFile(snapshot.Name, snapshot.OwnerUid, snapshot.GroupGid, mode, new FileContent(initialBytes));
         }
 
         private static VfsNode RebuildDirectory(VfsNodeSnapshot snapshot, PermissionMode mode, HashSet<VfsNodeSnapshot> visited)
