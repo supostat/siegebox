@@ -19,6 +19,7 @@ namespace Siegebox.Process
 
         private readonly Dictionary<int, ProcessEntry> table = new Dictionary<int, ProcessEntry>();
         private readonly List<int> schedulingOrder = new List<int>();
+        private readonly ExitCodeLedger exitCodeLedger = new ExitCodeLedger();
         private readonly int tickBudget;
         private readonly int probeBudget;
         private int nextPid = 1;
@@ -75,14 +76,57 @@ namespace Siegebox.Process
                 throw new InvalidOperationException($"Command '{command.Name}' created a null process.");
             }
 
+            return Spawn(process, command.Name);
+        }
+
+        public int Spawn(IProcess process, string name)
+        {
+            if (process is null)
+            {
+                throw new ArgumentNullException(nameof(process));
+            }
+
+            if (name is null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (name.Length == 0)
+            {
+                throw new ArgumentException("Process name must not be empty.", nameof(name));
+            }
+
             var pid = nextPid;
             nextPid++;
-            table.Add(pid, new ProcessEntry(process));
+            table.Add(pid, new ProcessEntry(pid, process, name));
             schedulingOrder.Add(pid);
             return pid;
         }
 
         public bool Contains(int pid) => table.ContainsKey(pid);
+
+        /// <summary>
+        /// Non-destructive look at a retained exit status. False while the process is still
+        /// alive and after the status has been collected.
+        /// </summary>
+        public bool TryPeekExitCode(int pid, out int exitCode) => exitCodeLedger.TryPeek(pid, out exitCode);
+
+        /// <summary>
+        /// Collects a retained exit status: returns it and ends retention, exactly once per pid.
+        /// </summary>
+        public bool TryCollectExitCode(int pid, out int exitCode) => exitCodeLedger.TryCollect(pid, out exitCode);
+
+        public IReadOnlyList<ProcessInfo> ListProcesses()
+        {
+            var processes = new List<ProcessInfo>(schedulingOrder.Count);
+            foreach (var pid in schedulingOrder)
+            {
+                var entry = table[pid];
+                processes.Add(new ProcessInfo(pid, entry.Name, entry.State, entry.Process.Context.Credentials.Uid));
+            }
+
+            return processes;
+        }
 
         public ProcessState GetState(int pid) => GetEntry(pid).State;
 
@@ -257,9 +301,10 @@ namespace Siegebox.Process
             entry.WakeCondition = condition;
         }
 
-        private static void Terminate(ProcessEntry entry)
+        private void Terminate(ProcessEntry entry)
         {
             entry.State = ProcessState.Finished;
+            exitCodeLedger.Retain(entry.Pid, entry.ExitCode);
             entry.Process.Context.FileDescriptors.CloseAll();
         }
 
@@ -311,12 +356,18 @@ namespace Siegebox.Process
 
         private sealed class ProcessEntry
         {
-            public ProcessEntry(IProcess process)
+            public ProcessEntry(int pid, IProcess process, string name)
             {
+                Pid = pid;
                 Process = process;
+                Name = name;
             }
 
+            public int Pid { get; }
+
             public IProcess Process { get; }
+
+            public string Name { get; }
 
             public ProcessState State { get; set; }
 

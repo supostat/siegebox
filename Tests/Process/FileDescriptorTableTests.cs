@@ -128,6 +128,35 @@ namespace Siegebox.Process.Tests
             Assert.That(() => table.CloseAll(), Throws.Nothing);
         }
 
+        [Test]
+        public void Clone_returns_a_distinct_table_sharing_the_same_streams()
+        {
+            var stdin = new PipeStream();
+            var stdout = new PipeStream();
+            var stderr = new PipeStream();
+            var table = new FileDescriptorTable(stdin, stdout, stderr);
+
+            var clone = table.Clone();
+
+            Assert.That(clone, Is.Not.SameAs(table));
+            Assert.That(clone.Get(FileDescriptorTable.Stdin), Is.SameAs(stdin));
+            Assert.That(clone.Get(FileDescriptorTable.Stdout), Is.SameAs(stdout));
+            Assert.That(clone.Get(FileDescriptorTable.Stderr), Is.SameAs(stderr));
+        }
+
+        [Test]
+        public void Repeated_clones_are_independent_instances()
+        {
+            var table = new FileDescriptorTable(new PipeStream(), new PipeStream(), new PipeStream());
+
+            var first = table.Clone();
+            var second = table.Clone();
+
+            Assert.That(first, Is.Not.SameAs(second));
+            Assert.That(first.Get(FileDescriptorTable.Stdout), Is.SameAs(table.Get(FileDescriptorTable.Stdout)));
+            Assert.That(second.Get(FileDescriptorTable.Stdout), Is.SameAs(table.Get(FileDescriptorTable.Stdout)));
+        }
+
         private sealed class ThrowOnCloseWriteStream : IByteStream
         {
             public StreamResult Read(byte[] buffer, int offset, int count) => StreamResult.WouldBlock;

@@ -8,6 +8,8 @@ namespace Siegebox.Vfs
 
         void WriteAt(int position, byte[] source, int offset, int count);
 
+        void Truncate();
+
         byte[] Snapshot();
     }
 }

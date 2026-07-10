@@ -74,6 +74,36 @@ namespace Siegebox.Vfs
             };
         }
 
+        /// <summary>
+        /// Opens a file for writing, creating it when missing. A dangling final symlink is
+        /// followed BEFORE creation, so the write creates the symlink's target (POSIX).
+        /// </summary>
+        public IByteStream OpenForWrite(string path, WriteBehavior behavior, PermissionMode createMode, Credentials credentials)
+        {
+            try
+            {
+                return OpenExistingForWrite(path, behavior, credentials);
+            }
+            catch (VfsException error) when (error.Error == VfsError.ENOENT)
+            {
+                var targetPath = resolver.FinalTargetPathOf(path, credentials);
+                CreateFile(targetPath, createMode, credentials);
+                return OpenExistingForWrite(targetPath, behavior, credentials);
+            }
+        }
+
+        /// <summary>Resolves to an enterable directory; returns its canonical absolute path.</summary>
+        public string ResolveDirectoryPath(string path, Credentials credentials)
+        {
+            var node = resolver.Resolve(path, credentials, PermissionMode.ExecuteBit, true);
+            if (node.Type != NodeType.Directory)
+            {
+                throw new VfsException(VfsError.ENOTDIR, path);
+            }
+
+            return resolver.CanonicalPathOf(node);
+        }
+
         public void Delete(string path, Credentials credentials)
         {
             var (parent, name) = resolver.ResolveParent(path, credentials);
@@ -166,6 +196,27 @@ namespace Siegebox.Vfs
             var rootCredentials = new Credentials(RootUid, RootGid);
             CreateDirectory("/dev", new PermissionMode(DeviceDirectoryMode), rootCredentials);
             CreateDevice("/dev/null", DeviceKind.Null, new PermissionMode(NullDeviceMode), rootCredentials);
+        }
+
+        private IByteStream OpenExistingForWrite(string path, WriteBehavior behavior, Credentials credentials)
+        {
+            var node = resolver.Resolve(path, credentials, PermissionMode.WriteBit, true);
+            switch (node.Type)
+            {
+                case NodeType.Directory:
+                    throw new VfsException(VfsError.EISDIR, path);
+                case NodeType.Device:
+                    return OpenDevice(node);
+                case NodeType.File:
+                    if (behavior == WriteBehavior.Truncate)
+                    {
+                        node.Content!.Truncate();
+                    }
+
+                    return new FileStream(node.Content!, OpenMode.Write, behavior == WriteBehavior.Append);
+                default:
+                    throw new VfsException(VfsError.EINVAL, path);
+            }
         }
 
         private static IByteStream OpenDevice(VfsNode node) => node.DeviceKind switch

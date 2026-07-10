@@ -374,6 +374,205 @@ namespace Siegebox.Process.Tests
             Assert.That(reentrancyError.Message, Does.Contain("already in progress"));
         }
 
+        [Test]
+        public void Spawn_process_overload_assigns_increasing_pids_and_never_steps()
+        {
+            var scheduler = new Scheduler();
+            var first = new ScriptedProcess(CreateContext(), RunForever);
+            var second = new ScriptedProcess(CreateContext(), RunForever);
+
+            var firstPid = scheduler.Spawn(first, "alpha");
+            var secondPid = scheduler.Spawn(second, "beta");
+
+            Assert.That(secondPid, Is.GreaterThan(firstPid));
+            Assert.That(first.StepCount, Is.EqualTo(0));
+            Assert.That(second.StepCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Spawn_process_overload_rejects_null_and_empty_arguments()
+        {
+            var scheduler = new Scheduler();
+            var process = new ScriptedProcess(CreateContext(), RunForever);
+
+            Assert.Throws<ArgumentNullException>(() => scheduler.Spawn(null, "name"));
+            Assert.Throws<ArgumentNullException>(() => scheduler.Spawn(process, null));
+            Assert.Throws<ArgumentException>(() => scheduler.Spawn(process, ""));
+        }
+
+        [Test]
+        public void Spawn_during_step_is_safe_and_does_not_step_the_new_process_at_spawn()
+        {
+            var scheduler = new Scheduler(4);
+            ScriptedProcess child = null;
+            var childStepsSeenAtSpawn = -1;
+            var spawner = SpawnScripted(scheduler, self =>
+            {
+                if (child == null)
+                {
+                    child = new ScriptedProcess(CreateContext(), RunForever);
+                    scheduler.Spawn(child, "child");
+                    childStepsSeenAtSpawn = child.StepCount;
+                }
+
+                return ProcessState.Running;
+            }).Process;
+            var runner = SpawnScripted(scheduler, RunForever).Process;
+
+            scheduler.Tick();
+
+            Assert.That(childStepsSeenAtSpawn, Is.EqualTo(0));
+            Assert.That(spawner.StepCount + runner.StepCount + child.StepCount, Is.EqualTo(4));
+
+            scheduler.Tick();
+            Assert.That(spawner.StepCount + runner.StepCount + child.StepCount, Is.EqualTo(8));
+            Assert.That(child.StepCount, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void Retained_status_survives_ticks_until_collected()
+        {
+            var scheduler = new Scheduler(10);
+            var pid = SpawnScripted(scheduler, self =>
+            {
+                self.ExitCode = 7;
+                return ProcessState.Finished;
+            }).Pid;
+
+            scheduler.Tick();
+            scheduler.Tick();
+            Assert.That(scheduler.Contains(pid), Is.False);
+
+            Assert.That(scheduler.TryPeekExitCode(pid, out var peeked), Is.True);
+            Assert.That(peeked, Is.EqualTo(7));
+            Assert.That(scheduler.TryPeekExitCode(pid, out _), Is.True);
+
+            Assert.That(scheduler.TryCollectExitCode(pid, out var collected), Is.True);
+            Assert.That(collected, Is.EqualTo(7));
+            Assert.That(scheduler.TryPeekExitCode(pid, out _), Is.False);
+            Assert.That(scheduler.TryCollectExitCode(pid, out _), Is.False);
+        }
+
+        [Test]
+        public void Status_collected_during_the_finishing_tick_does_not_resurrect_after_reap()
+        {
+            var scheduler = new Scheduler(10);
+            var finishingPid = SpawnScripted(scheduler, self =>
+            {
+                self.ExitCode = 7;
+                return ProcessState.Finished;
+            }).Pid;
+            var collectedInTick = -1;
+            SpawnScripted(scheduler, self =>
+            {
+                if (scheduler.TryCollectExitCode(finishingPid, out var code))
+                {
+                    collectedInTick = code;
+                    return ProcessState.Finished;
+                }
+
+                return ProcessState.Running;
+            });
+
+            scheduler.Tick();
+
+            Assert.That(collectedInTick, Is.EqualTo(7));
+            Assert.That(scheduler.TryPeekExitCode(finishingPid, out _), Is.False);
+        }
+
+        [Test]
+        public void Kill_interrupt_code_is_collectible_after_reap()
+        {
+            var scheduler = new Scheduler(10);
+            var pid = SpawnScripted(scheduler, RunForever).Pid;
+
+            scheduler.Kill(pid);
+            scheduler.Tick();
+            Assert.That(scheduler.Contains(pid), Is.False);
+
+            Assert.That(scheduler.TryCollectExitCode(pid, out var code), Is.True);
+            Assert.That(code, Is.EqualTo(Scheduler.InterruptExitCode));
+        }
+
+        [Test]
+        public void Peek_and_collect_are_false_for_running_and_unknown_pids()
+        {
+            var scheduler = new Scheduler(10);
+            var runningPid = SpawnScripted(scheduler, RunForever).Pid;
+
+            Assert.That(scheduler.TryPeekExitCode(runningPid, out _), Is.False);
+            Assert.That(scheduler.TryCollectExitCode(runningPid, out _), Is.False);
+            Assert.That(scheduler.TryPeekExitCode(9999, out _), Is.False);
+            Assert.That(scheduler.TryCollectExitCode(9999, out _), Is.False);
+        }
+
+        [Test]
+        public void Retained_status_does_not_leak_into_contains_or_get_exit_code()
+        {
+            var scheduler = new Scheduler(10);
+            var pid = SpawnScripted(scheduler, self =>
+            {
+                self.ExitCode = 7;
+                return ProcessState.Finished;
+            }).Pid;
+
+            scheduler.Tick();
+
+            Assert.That(scheduler.TryPeekExitCode(pid, out _), Is.True);
+            Assert.That(scheduler.Contains(pid), Is.False);
+            Assert.Throws<ArgumentException>(() => scheduler.GetExitCode(pid));
+        }
+
+        [Test]
+        public void List_processes_returns_live_entries_pid_ascending_excluding_reaped()
+        {
+            var scheduler = new Scheduler(10);
+            var firstPid = scheduler.Spawn(new ScriptedProcess(CreateContext(), RunForever), "alpha");
+            var finishingPid = SpawnScripted(scheduler, self =>
+            {
+                self.ExitCode = 0;
+                return ProcessState.Finished;
+            }).Pid;
+            var lastPid = scheduler.Spawn(new ScriptedProcess(CreateContext(), RunForever), "omega");
+
+            scheduler.Tick();
+            var processes = scheduler.ListProcesses();
+
+            Assert.That(processes.Count, Is.EqualTo(2));
+            Assert.That(processes[0].Pid, Is.EqualTo(firstPid));
+            Assert.That(processes[0].Name, Is.EqualTo("alpha"));
+            Assert.That(processes[1].Pid, Is.EqualTo(lastPid));
+            Assert.That(processes[1].Name, Is.EqualTo("omega"));
+            Assert.That(processes[0].State, Is.EqualTo(ProcessState.Running));
+            Assert.That(scheduler.Contains(finishingPid), Is.False);
+        }
+
+        [Test]
+        public void List_processes_uses_the_command_name_for_the_command_overload()
+        {
+            var scheduler = new Scheduler();
+            var pid = SpawnScripted(scheduler, RunForever).Pid;
+
+            var processes = scheduler.ListProcesses();
+
+            Assert.That(processes.Count, Is.EqualTo(1));
+            Assert.That(processes[0].Pid, Is.EqualTo(pid));
+            Assert.That(processes[0].Name, Is.EqualTo("stub"));
+        }
+
+        [Test]
+        public void List_processes_carries_the_context_owner_uid()
+        {
+            var scheduler = new Scheduler();
+            var descriptors = new FileDescriptorTable(new PipeStream(), new PipeStream(), new PipeStream());
+            var context = new ExecutionContext("/", new Credentials(42), new Dictionary<string, string>(), descriptors);
+            scheduler.Spawn(new ScriptedProcess(context, RunForever), "owned");
+
+            var processes = scheduler.ListProcesses();
+
+            Assert.That(processes[0].OwnerUid, Is.EqualTo(42));
+        }
+
         private sealed class KillOnProbeStream : IByteStream
         {
             private readonly Action onProbe;

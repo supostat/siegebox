@@ -38,6 +38,14 @@ namespace Siegebox.Process
             };
         }
 
+        private FileDescriptorTable(Dictionary<int, FileDescriptorEntry> source)
+        {
+            entries = new Dictionary<int, FileDescriptorEntry>(source);
+        }
+
+        /// <summary>New table with its own entry map but the SAME stream references and modes.</summary>
+        public FileDescriptorTable Clone() => new FileDescriptorTable(entries);
+
         public IByteStream Get(int descriptor)
         {
             if (!entries.TryGetValue(descriptor, out var entry))

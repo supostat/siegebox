@@ -7,11 +7,13 @@ namespace Siegebox.Vfs
         private readonly IFileContent content;
         private readonly bool canRead;
         private readonly bool canWrite;
+        private readonly bool append;
         private int position;
 
-        public FileStream(IFileContent content, OpenMode mode)
+        public FileStream(IFileContent content, OpenMode mode, bool append = false)
         {
             this.content = content;
+            this.append = append;
             canRead = mode != OpenMode.Write;
             canWrite = mode != OpenMode.Read;
         }
@@ -42,8 +44,9 @@ namespace Siegebox.Vfs
             }
 
             ValidateRange(buffer, offset, count);
-            content.WriteAt(position, buffer, offset, count);
-            position += count;
+            var writePosition = append ? content.Length : position;
+            content.WriteAt(writePosition, buffer, offset, count);
+            position = writePosition + count;
             return StreamResult.Ok(count);
         }
 

@@ -46,6 +46,11 @@ namespace Siegebox.Vfs
             }
         }
 
+        public void Truncate()
+        {
+            length = 0;
+        }
+
         public byte[] Snapshot()
         {
             var copy = new byte[length];

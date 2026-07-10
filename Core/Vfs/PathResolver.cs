@@ -49,6 +49,53 @@ namespace Siegebox.Vfs
         public void RequireAccess(VfsNode node, Credentials credentials, int requiredAccess, string path)
             => CheckAccess(node, credentials, requiredAccess, path);
 
+        public string CanonicalPathOf(VfsNode node)
+        {
+            if (node.Parent is null)
+            {
+                return "/";
+            }
+
+            var segments = new List<string>();
+            for (VfsNode? current = node; current!.Parent is not null; current = current.Parent)
+            {
+                segments.Add(current.Name);
+            }
+
+            segments.Reverse();
+            return "/" + string.Join("/", segments);
+        }
+
+        /// <summary>
+        /// Follows the final path component through any symlink chain (existing or dangling)
+        /// and returns the canonical path the chain points at, so create-on-write targets
+        /// the symlink's destination instead of colliding with the symlink node itself.
+        /// </summary>
+        public string FinalTargetPathOf(string path, Credentials credentials)
+        {
+            var currentPath = path;
+            var followCount = 0;
+            while (true)
+            {
+                var (parent, name) = ResolveParent(currentPath, credentials);
+                if (!parent.Children!.TryGetValue(name, out var child) || child.Type != NodeType.Symlink)
+                {
+                    return JoinCanonical(CanonicalPathOf(parent), name);
+                }
+
+                followCount++;
+                if (followCount > MaxSymlinkDepth)
+                {
+                    throw new VfsException(VfsError.ELOOP, path);
+                }
+
+                var target = child.SymlinkTarget!;
+                currentPath = target.Length > 0 && target[0] == '/'
+                    ? target
+                    : JoinCanonical(CanonicalPathOf(parent), target);
+            }
+        }
+
         private VfsNode WalkFrom(VfsNode start, List<string> segments, int count, Credentials credentials, string path, bool followLast, ref int followCount)
         {
             var current = start;
@@ -92,6 +139,9 @@ namespace Siegebox.Vfs
             var segments = SplitSegments(target);
             return WalkFrom(start, segments, segments.Count, credentials, path, true, ref followCount);
         }
+
+        private static string JoinCanonical(string directoryPath, string name)
+            => directoryPath == "/" ? "/" + name : directoryPath + "/" + name;
 
         private static VfsNode Descend(VfsNode directory, string name, string path)
         {
