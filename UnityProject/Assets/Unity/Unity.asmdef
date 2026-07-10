@@ -1,0 +1,16 @@
+{
+    "name": "Siegebox.Unity",
+    "rootNamespace": "Siegebox.Unity",
+    "references": [
+        "Siegebox.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

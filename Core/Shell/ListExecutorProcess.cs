@@ -12,6 +12,8 @@ namespace Siegebox.Shell
     /// </summary>
     internal sealed class ListExecutorProcess : IProcess
     {
+        private const int BurnedStatusExitCode = 127;
+
         private readonly ListNode list;
         private readonly ShellSession session;
         private readonly Scheduler scheduler;
@@ -85,15 +87,22 @@ namespace Siegebox.Shell
         /// <summary>
         /// A foreground pipeline is waited on member by member (POSIX: the shell waits for the
         /// whole pipeline), so every retained status is collected and none leaks; <c>$?</c> is
-        /// the last member's code.
+        /// the last member's code. A member whose status someone else already collected (burned)
+        /// and that is gone from the table resolves to 127 instead of wedging the executor.
         /// </summary>
         private bool TryCollectForeground()
         {
             while (awaitingIndex < awaitingPids!.Count)
             {
-                if (!scheduler.TryCollectExitCode(awaitingPids[awaitingIndex], out lastCollectedExitCode))
+                var awaitedPid = awaitingPids[awaitingIndex];
+                if (!scheduler.TryCollectExitCode(awaitedPid, out lastCollectedExitCode))
                 {
-                    return false;
+                    if (scheduler.Contains(awaitedPid))
+                    {
+                        return false;
+                    }
+
+                    lastCollectedExitCode = BurnedStatusExitCode;
                 }
 
                 awaitingIndex++;

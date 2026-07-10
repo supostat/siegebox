@@ -14,17 +14,15 @@ namespace Siegebox.Process
         public const int DefaultTickBudget = 1024;
         public const int DefaultProbeBudget = 4096;
         public const int InterruptExitCode = 130;
-
-        private static readonly byte[] ProbeBuffer = Array.Empty<byte>();
+        public const int HangupExitCode = 129;
 
         private readonly Dictionary<int, ProcessEntry> table = new Dictionary<int, ProcessEntry>();
         private readonly List<int> schedulingOrder = new List<int>();
         private readonly ExitCodeLedger exitCodeLedger = new ExitCodeLedger();
+        private readonly WakeScanner wakeScanner;
         private readonly int tickBudget;
-        private readonly int probeBudget;
         private int nextPid = 1;
         private int cursor;
-        private int probesRemaining;
         private bool ticking;
 
         /// <summary>
@@ -42,13 +40,8 @@ namespace Siegebox.Process
                 throw new ArgumentOutOfRangeException(nameof(tickBudget), tickBudget, "Tick budget must be positive.");
             }
 
-            if (probeBudget <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(probeBudget), probeBudget, "Probe budget must be positive.");
-            }
-
             this.tickBudget = tickBudget;
-            this.probeBudget = probeBudget;
+            wakeScanner = new WakeScanner(probeBudget, IsProcessExitSatisfied);
         }
 
         public int ProcessCount => table.Count;
@@ -158,6 +151,22 @@ namespace Siegebox.Process
             Terminate(entry);
         }
 
+        /// <summary>
+        /// Terminates the process immediately with <see cref="HangupExitCode"/> (controlling
+        /// terminal went away). Same first-termination-wins corpse semantics as <see cref="Kill"/>.
+        /// </summary>
+        public void Hangup(int pid)
+        {
+            var entry = GetEntry(pid);
+            if (entry.State == ProcessState.Finished)
+            {
+                return;
+            }
+
+            entry.ExitCode = HangupExitCode;
+            Terminate(entry);
+        }
+
         public void Tick()
         {
             if (ticking)
@@ -168,7 +177,7 @@ namespace Siegebox.Process
             ticking = true;
             try
             {
-                probesRemaining = probeBudget;
+                wakeScanner.BeginTick();
                 var steps = 0;
                 while (steps < tickBudget && schedulingOrder.Count > 0)
                 {
@@ -249,12 +258,7 @@ namespace Siegebox.Process
 
         private bool TryWake(ProcessEntry entry)
         {
-            if (!TrySpendProbeBudget(entry.WakeCondition))
-            {
-                return false;
-            }
-
-            if (!IsSatisfied(entry.WakeCondition))
+            if (!wakeScanner.ShouldWake(entry.WakeCondition))
             {
                 return false;
             }
@@ -269,21 +273,8 @@ namespace Siegebox.Process
             return true;
         }
 
-        private bool TrySpendProbeBudget(WakeCondition condition)
-        {
-            if (condition.Kind != WakeConditionKind.StreamReadable && condition.Kind != WakeConditionKind.StreamWritable)
-            {
-                return true;
-            }
-
-            if (probesRemaining == 0)
-            {
-                return false;
-            }
-
-            probesRemaining--;
-            return true;
-        }
+        private bool IsProcessExitSatisfied(int pid)
+            => !table.TryGetValue(pid, out var target) || target.State == ProcessState.Finished;
 
         private static bool WasTerminatedDuringStep(ProcessEntry entry) => entry.State == ProcessState.Finished;
 
@@ -307,23 +298,6 @@ namespace Siegebox.Process
             exitCodeLedger.Retain(entry.Pid, entry.ExitCode);
             entry.Process.Context.FileDescriptors.CloseAll();
         }
-
-        private bool IsSatisfied(WakeCondition condition)
-        {
-            switch (condition.Kind)
-            {
-                case WakeConditionKind.StreamReadable:
-                    return CanWake(condition.Stream!.Read(ProbeBuffer, 0, 0));
-                case WakeConditionKind.StreamWritable:
-                    return CanWake(condition.Stream!.Write(ProbeBuffer, 0, 0));
-                case WakeConditionKind.ProcessExit:
-                    return !table.TryGetValue(condition.Pid, out var target) || target.State == ProcessState.Finished;
-                default:
-                    throw new InvalidOperationException($"Cannot evaluate a wake condition of kind {condition.Kind}.");
-            }
-        }
-
-        private static bool CanWake(StreamResult probe) => probe.Status != StreamStatus.WouldBlock;
 
         private void Reap()
         {
@@ -352,28 +326,6 @@ namespace Siegebox.Process
             }
 
             return entry;
-        }
-
-        private sealed class ProcessEntry
-        {
-            public ProcessEntry(int pid, IProcess process, string name)
-            {
-                Pid = pid;
-                Process = process;
-                Name = name;
-            }
-
-            public int Pid { get; }
-
-            public IProcess Process { get; }
-
-            public string Name { get; }
-
-            public ProcessState State { get; set; }
-
-            public int ExitCode { get; set; }
-
-            public WakeCondition WakeCondition { get; set; }
         }
     }
 }

@@ -69,6 +69,14 @@ namespace Siegebox.Shell
 
             foreach (var pid in pids)
             {
+                if (!collector.BelongsToSession(pid))
+                {
+                    return BuiltinResult.Completed(127, "", $"wait: pid {pid} is not a child of this shell\n");
+                }
+            }
+
+            foreach (var pid in pids)
+            {
                 if (!collector.IsFinished(pid))
                 {
                     return BuiltinResult.WaitFor(pid);

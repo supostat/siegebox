@@ -19,6 +19,22 @@ namespace Siegebox.Shell
 
         public bool IsFinished(int pid) => scheduler.TryPeekExitCode(pid, out _) || !scheduler.Contains(pid);
 
+        public bool BelongsToSession(int pid)
+        {
+            foreach (var job in jobs.Jobs)
+            {
+                foreach (var jobPid in job.Pids)
+                {
+                    if (jobPid == pid)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public int FirstUnfinishedPid(Job job)
         {
             foreach (var pid in job.Pids)

@@ -27,3 +27,9 @@ obj/
 Library/
 Temp/
 Logs/
+# dotnet artifacts output (Directory.Build.props ArtifactsPath)
+artifacts/
+# Unity project noise
+UserSettings/
+UnityProject/*.sln
+UnityProject/*.csproj

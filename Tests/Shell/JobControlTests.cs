@@ -112,6 +112,7 @@ namespace Siegebox.Shell.Tests
             harness.Run("wait 9999");
 
             Assert.That(harness.Session.LastExitCode, Is.EqualTo(127));
+            Assert.That(harness.DrainError(), Does.Contain("wait: pid 9999 is not a child of this shell"));
         }
 
         [Test]

@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns="UnityEngine.UIElements">
+    <ui:VisualElement name="terminal-window" class="terminal-window">
+        <ui:VisualElement name="title-bar" class="title-bar">
+            <ui:Label name="title" text="terminal" class="title" />
+            <ui:Button name="close-button" text="✕" class="close-button" />
+        </ui:VisualElement>
+        <ui:ScrollView name="output-scroll" class="output-scroll">
+            <ui:Label name="output-text" class="output-text" />
+        </ui:ScrollView>
+        <ui:VisualElement name="input-row" class="input-row">
+            <ui:Label name="prompt" class="prompt" />
+            <ui:TextField name="command-input" class="command-input" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
