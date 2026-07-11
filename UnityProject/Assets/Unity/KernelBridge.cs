@@ -24,7 +24,7 @@ namespace Siegebox.Unity
         private TerminalController controller;
         private bool skipNextTick;
 
-        private void Awake()
+        private void Start()
         {
             var vfs = new VirtualFileSystem();
             scheduler = new Scheduler();
@@ -42,6 +42,11 @@ namespace Siegebox.Unity
 
         private void Update()
         {
+            if (controller is null)
+            {
+                return;
+            }
+
             TickWithinBudget();
             controller.Pump();
         }

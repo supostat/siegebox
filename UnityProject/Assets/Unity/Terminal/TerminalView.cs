@@ -36,6 +36,7 @@ namespace Siegebox.Unity
             commandInput.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             outputScroll.verticalScroller.valueChanged += OnScrolled;
             outputText.RegisterCallback<GeometryChangedEvent>(OnOutputGeometryChanged);
+            RefocusInput();
         }
 
         public event Action<string> LineSubmitted;
@@ -61,7 +62,7 @@ namespace Siegebox.Unity
                 var line = commandInput.value;
                 commandInput.value = "";
                 LineSubmitted?.Invoke(line);
-                commandInput.Focus();
+                RefocusInput();
                 keyEvent.StopPropagation();
                 return;
             }
@@ -87,8 +88,14 @@ namespace Siegebox.Unity
         {
             if (pinnedToBottom)
             {
-                outputScroll.verticalScroller.value = outputScroll.verticalScroller.highValue;
+                outputScroll.schedule.Execute(ScrollToBottom);
             }
         }
+
+        private void ScrollToBottom()
+            => outputScroll.scrollOffset = new Vector2(outputScroll.scrollOffset.x, float.MaxValue);
+
+        private void RefocusInput()
+            => commandInput.schedule.Execute(() => commandInput.Focus());
     }
 }
