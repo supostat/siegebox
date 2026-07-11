@@ -5,30 +5,25 @@ namespace Siegebox.Unity
 {
     /// <summary>
     /// Glue between the Core reader session and the view: forwards lines and history
-    /// navigation, re-renders on scrollback version changes, and closes the session when
-    /// the window closes. No OS logic lives here.
+    /// navigation, re-renders on scrollback version changes, and closes the session on
+    /// dispose. No OS logic lives here.
     /// </summary>
     public sealed class TerminalController : IDisposable
     {
         private readonly TerminalSession session;
-        private readonly TerminalWindow window;
         private readonly TerminalView view;
         private readonly CommandHistory history = new CommandHistory();
         private int renderedScrollbackVersion = -1;
 
-        public TerminalController(TerminalSession session, TerminalWindow window, TerminalView view)
+        public TerminalController(TerminalSession session, TerminalView view)
         {
             this.session = session ?? throw new ArgumentNullException(nameof(session));
-            this.window = window ?? throw new ArgumentNullException(nameof(window));
             this.view = view ?? throw new ArgumentNullException(nameof(view));
 
             view.LineSubmitted += OnLineSubmitted;
             view.HistoryPreviousRequested += OnHistoryPrevious;
             view.HistoryNextRequested += OnHistoryNext;
-            window.CloseRequested += OnCloseRequested;
         }
-
-        public event Action Closed;
 
         public void Pump()
         {
@@ -67,13 +62,6 @@ namespace Siegebox.Unity
             {
                 view.SetInputText(line);
             }
-        }
-
-        private void OnCloseRequested()
-        {
-            session.Close();
-            window.Remove();
-            Closed?.Invoke();
         }
     }
 }

@@ -19,6 +19,29 @@ namespace Siegebox.Shell
                 throw new ArgumentNullException(nameof(commands));
             }
 
+            InstallBuiltins(builtins, vfs, scheduler, jobs);
+
+            commands.Register(new LsCommand(vfs));
+            commands.Register(new CatCommand(vfs));
+            commands.Register(new PwdCommand());
+            commands.Register(new MkdirCommand(vfs));
+            commands.Register(new RmCommand(vfs));
+            commands.Register(new MvCommand(vfs));
+            commands.Register(new CpCommand(vfs));
+            commands.Register(new EchoCommand());
+            commands.Register(new TouchCommand(vfs));
+            commands.Register(new ClearCommand());
+            commands.Register(new HelpCommand(commands, builtins));
+            commands.Register(new PsCommand(scheduler));
+            commands.Register(new KillCommand(scheduler));
+        }
+
+        public static void InstallBuiltins(
+            BuiltinRegistry builtins,
+            VirtualFileSystem vfs,
+            Scheduler scheduler,
+            JobTable jobs)
+        {
             if (builtins is null)
             {
                 throw new ArgumentNullException(nameof(builtins));
@@ -44,20 +67,6 @@ namespace Siegebox.Shell
             builtins.Register(new SuBuiltin());
             builtins.Register(new WaitBuiltin(scheduler, jobs));
             builtins.Register(new JobsBuiltin(scheduler, jobs));
-
-            commands.Register(new LsCommand(vfs));
-            commands.Register(new CatCommand(vfs));
-            commands.Register(new PwdCommand());
-            commands.Register(new MkdirCommand(vfs));
-            commands.Register(new RmCommand(vfs));
-            commands.Register(new MvCommand(vfs));
-            commands.Register(new CpCommand(vfs));
-            commands.Register(new EchoCommand());
-            commands.Register(new TouchCommand(vfs));
-            commands.Register(new ClearCommand());
-            commands.Register(new HelpCommand(commands, builtins));
-            commands.Register(new PsCommand(scheduler));
-            commands.Register(new KillCommand(scheduler));
         }
     }
 }

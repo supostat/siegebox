@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns="UnityEngine.UIElements">
+    <Style src="Desktop.uss" />
+    <ui:VisualElement name="desktop" class="desktop">
+        <ui:VisualElement name="window-layer" class="window-layer" />
+        <ui:VisualElement name="taskbar" class="taskbar">
+            <ui:VisualElement name="taskbar-launchers" class="taskbar-launchers" />
+            <ui:VisualElement name="taskbar-entries" class="taskbar-entries" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

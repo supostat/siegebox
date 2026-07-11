@@ -1,37 +1,7 @@
-.terminal-window {
+.terminal {
     flex-grow: 1;
     flex-direction: column;
     background-color: rgb(14, 14, 18);
-    border-color: rgb(60, 60, 70);
-    border-width: 1px;
-    border-radius: 4px;
-}
-
-.title-bar {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    background-color: rgb(28, 28, 36);
-    padding: 2px 6px;
-    flex-shrink: 0;
-}
-
-.title {
-    color: rgb(180, 180, 190);
-    -unity-font-style: bold;
-}
-
-.close-button {
-    width: 22px;
-    height: 20px;
-    color: rgb(200, 200, 210);
-    background-color: rgb(50, 50, 60);
-    border-width: 0;
-    border-radius: 3px;
-}
-
-.close-button:hover {
-    background-color: rgb(160, 60, 60);
 }
 
 .output-scroll {

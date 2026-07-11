@@ -1,10 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns="UnityEngine.UIElements">
     <Style src="Terminal.uss" />
-    <ui:VisualElement name="terminal-window" class="terminal-window">
-        <ui:VisualElement name="title-bar" class="title-bar">
-            <ui:Label name="title" text="terminal" class="title" />
-            <ui:Button name="close-button" text="✕" class="close-button" />
-        </ui:VisualElement>
+    <ui:VisualElement name="terminal" class="terminal">
         <ui:ScrollView name="output-scroll" class="output-scroll">
             <ui:Label name="output-text" class="output-text" />
         </ui:ScrollView>

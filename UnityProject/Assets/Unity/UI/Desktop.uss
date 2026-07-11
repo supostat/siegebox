@@ -1,0 +1,63 @@
+.desktop {
+    flex-grow: 1;
+    flex-direction: column;
+    background-color: rgb(24, 26, 34);
+}
+
+.window-layer {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.taskbar {
+    flex-direction: row;
+    align-items: center;
+    height: 32px;
+    flex-shrink: 0;
+    background-color: rgb(28, 28, 36);
+    border-top-width: 1px;
+    border-top-color: rgb(60, 60, 70);
+}
+
+.taskbar-launchers {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.taskbar-launcher {
+    color: rgb(200, 200, 210);
+    background-color: rgb(50, 50, 60);
+    border-width: 0;
+    border-radius: 3px;
+    margin: 4px 2px;
+    padding: 2px 10px;
+}
+
+.taskbar-launcher:hover {
+    background-color: rgb(70, 70, 84);
+}
+
+.taskbar-entries {
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.taskbar-entry {
+    min-width: 110px;
+    color: rgb(200, 200, 210);
+    background-color: rgb(38, 38, 48);
+    border-width: 0;
+    border-radius: 3px;
+    margin: 4px 2px;
+    padding: 2px 10px;
+}
+
+.taskbar-entry--focused {
+    background-color: rgb(60, 60, 76);
+}
+
+.taskbar-entry--minimized {
+    color: rgb(130, 130, 140);
+}

@@ -8,20 +8,22 @@ using UnityEngine.UIElements;
 namespace Siegebox.EditorTools
 {
     /// <summary>
-    /// One-click bootstrap for the terminal scene: creates the default runtime theme,
+    /// One-click bootstrap for the desktop scene: creates the default runtime theme,
     /// the PanelSettings asset and Assets/Scenes/Main.unity with a wired KernelBridge.
     /// Safe to re-run: existing theme and PanelSettings are reused; an existing scene aborts.
     /// </summary>
-    public static class TerminalSceneBootstrap
+    public static class DesktopSceneBootstrap
     {
         private const string ThemePath = "Assets/Unity/UI/UnityDefaultRuntimeTheme.tss";
         private const string PanelSettingsPath = "Assets/Unity/UI/PanelSettings.asset";
+        private const string DesktopTemplatePath = "Assets/Unity/UI/Desktop.uxml";
+        private const string WindowTemplatePath = "Assets/Unity/UI/Window.uxml";
         private const string TerminalTemplatePath = "Assets/Unity/UI/Terminal.uxml";
         private const string ScenesFolder = "Assets/Scenes";
         private const string ScenePath = "Assets/Scenes/Main.unity";
 
-        [MenuItem("Siegebox/Create Terminal Scene")]
-        public static void CreateTerminalScene()
+        [MenuItem("Siegebox/Create Desktop Scene")]
+        public static void CreateDesktopScene()
         {
             if (File.Exists(ScenePath))
             {
@@ -29,10 +31,11 @@ namespace Siegebox.EditorTools
                 return;
             }
 
-            var template = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(TerminalTemplatePath);
-            if (template == null)
+            var desktopTemplate = LoadTemplate(DesktopTemplatePath);
+            var windowTemplate = LoadTemplate(WindowTemplatePath);
+            var terminalTemplate = LoadTemplate(TerminalTemplatePath);
+            if (desktopTemplate == null || windowTemplate == null || terminalTemplate == null)
             {
-                Debug.LogError($"{TerminalTemplatePath} not found — the terminal layout must exist before bootstrapping.");
                 return;
             }
 
@@ -43,18 +46,32 @@ namespace Siegebox.EditorTools
             }
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-            var terminal = new GameObject("Terminal");
-            var uiDocument = terminal.AddComponent<UIDocument>();
+            var desktop = new GameObject("Desktop");
+            var uiDocument = desktop.AddComponent<UIDocument>();
             uiDocument.panelSettings = panelSettings;
 
-            var bridge = terminal.AddComponent<KernelBridge>();
+            var bridge = desktop.AddComponent<KernelBridge>();
             var serializedBridge = new SerializedObject(bridge);
             serializedBridge.FindProperty("uiDocument").objectReferenceValue = uiDocument;
-            serializedBridge.FindProperty("terminalTemplate").objectReferenceValue = template;
+            serializedBridge.FindProperty("desktopTemplate").objectReferenceValue = desktopTemplate;
+            serializedBridge.FindProperty("windowTemplate").objectReferenceValue = windowTemplate;
+            serializedBridge.FindProperty("terminalTemplate").objectReferenceValue = terminalTemplate;
             serializedBridge.ApplyModifiedPropertiesWithoutUndo();
 
+            EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log($"Terminal scene created at {ScenePath} — press Play.");
+            Debug.Log($"Desktop scene created at {ScenePath} — press Play.");
+        }
+
+        private static VisualTreeAsset LoadTemplate(string path)
+        {
+            var template = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(path);
+            if (template == null)
+            {
+                Debug.LogError($"{path} not found — the desktop layouts must exist before bootstrapping.");
+            }
+
+            return template;
         }
 
         private static PanelSettings LoadOrCreatePanelSettings()

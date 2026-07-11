@@ -36,7 +36,7 @@ namespace Siegebox.Unity
             commandInput.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             outputScroll.verticalScroller.valueChanged += OnScrolled;
             outputText.RegisterCallback<GeometryChangedEvent>(OnOutputGeometryChanged);
-            RefocusInput();
+            FocusInput();
         }
 
         public event Action<string> LineSubmitted;
@@ -55,6 +55,11 @@ namespace Siegebox.Unity
             commandInput.SelectRange(text.Length, text.Length);
         }
 
+        public void FocusInput()
+            => commandInput.schedule.Execute(() => commandInput.Focus());
+
+        public void BlurInput() => commandInput.Blur();
+
         private void OnKeyDown(KeyDownEvent keyEvent)
         {
             if (keyEvent.keyCode == KeyCode.Return || keyEvent.keyCode == KeyCode.KeypadEnter)
@@ -62,7 +67,7 @@ namespace Siegebox.Unity
                 var line = commandInput.value;
                 commandInput.value = "";
                 LineSubmitted?.Invoke(line);
-                RefocusInput();
+                FocusInput();
                 keyEvent.StopPropagation();
                 return;
             }
@@ -94,8 +99,5 @@ namespace Siegebox.Unity
 
         private void ScrollToBottom()
             => outputScroll.scrollOffset = new Vector2(outputScroll.scrollOffset.x, float.MaxValue);
-
-        private void RefocusInput()
-            => commandInput.schedule.Execute(() => commandInput.Focus());
     }
 }

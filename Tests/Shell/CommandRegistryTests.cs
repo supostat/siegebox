@@ -81,6 +81,20 @@ namespace Siegebox.Shell.Tests
         }
 
         [Test]
+        public void Install_builtins_rejects_null_arguments()
+        {
+            var builtins = new BuiltinRegistry();
+            var vfs = new VirtualFileSystem();
+            var scheduler = new Scheduler();
+            var jobs = new JobTable();
+
+            Assert.Throws<ArgumentNullException>(() => BaseCommandSet.InstallBuiltins(null, vfs, scheduler, jobs));
+            Assert.Throws<ArgumentNullException>(() => BaseCommandSet.InstallBuiltins(builtins, null, scheduler, jobs));
+            Assert.Throws<ArgumentNullException>(() => BaseCommandSet.InstallBuiltins(builtins, vfs, null, jobs));
+            Assert.Throws<ArgumentNullException>(() => BaseCommandSet.InstallBuiltins(builtins, vfs, scheduler, null));
+        }
+
+        [Test]
         public void Command_registered_after_shell_construction_resolves_in_the_next_execute()
         {
             var harness = new ShellHarness();

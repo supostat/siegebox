@@ -25,11 +25,7 @@ namespace Siegebox.Terminal.Tests
 
                 var builtinsB = new BuiltinRegistry();
                 JobsB = new JobTable();
-                builtinsB.Register(new CdBuiltin(Vfs));
-                builtinsB.Register(new ExportBuiltin());
-                builtinsB.Register(new SuBuiltin());
-                builtinsB.Register(new WaitBuiltin(Scheduler, JobsB));
-                builtinsB.Register(new JobsBuiltin(Scheduler, JobsB));
+                BaseCommandSet.InstallBuiltins(builtinsB, Vfs, Scheduler, JobsB);
 
                 SessionA = new ShellSession("/", new Credentials(0));
                 SessionB = new ShellSession("/", new Credentials(0));
