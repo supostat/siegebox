@@ -22,6 +22,7 @@ namespace Siegebox.Unity
         private readonly VisualTreeAsset windowTemplate;
         private readonly List<Window> windows = new List<Window>();
         private int openedCount;
+        private bool closingAll;
 
         public WindowManager(VisualElement windowLayer, VisualTreeAsset windowTemplate)
         {
@@ -82,7 +83,10 @@ namespace Siegebox.Unity
             if (FocusedWindow == window)
             {
                 FocusedWindow = null;
-                FocusTopmostVisible();
+                if (!closingAll)
+                {
+                    FocusTopmostVisible();
+                }
             }
         }
 
@@ -168,9 +172,17 @@ namespace Siegebox.Unity
 
         public void CloseAll()
         {
-            foreach (var window in windows.ToArray())
+            closingAll = true;
+            try
             {
-                Close(window);
+                foreach (var window in windows.ToArray())
+                {
+                    Close(window);
+                }
+            }
+            finally
+            {
+                closingAll = false;
             }
         }
 

@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns="UnityEngine.UIElements">
+    <Style src="FileManager.uss" />
+    <ui:VisualElement name="file-manager" class="file-manager">
+        <ui:VisualElement name="path-row" class="path-row">
+            <ui:Button name="up-button" class="up-button" text="up" />
+            <ui:Label name="path-label" class="path-label" />
+        </ui:VisualElement>
+        <ui:ScrollView name="entry-scroll" class="entry-scroll">
+            <ui:VisualElement name="entry-list" class="entry-list" />
+        </ui:ScrollView>
+        <ui:Label name="status-label" class="status-label" />
+    </ui:VisualElement>
+</ui:UXML>

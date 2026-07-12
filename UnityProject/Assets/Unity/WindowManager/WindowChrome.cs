@@ -26,6 +26,7 @@ namespace Siegebox.Unity
 
             frame = root.Q<VisualElement>("window");
             windowTitle = root.Q<Label>("window-title");
+            windowTitle.enableRichText = false;
             var minimizeButton = root.Q<Button>("minimize-button");
             maximizeButton = root.Q<Button>("maximize-button");
             var closeButton = root.Q<Button>("close-button");

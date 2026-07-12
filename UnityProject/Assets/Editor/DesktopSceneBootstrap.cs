@@ -19,6 +19,7 @@ namespace Siegebox.EditorTools
         private const string DesktopTemplatePath = "Assets/Unity/UI/Desktop.uxml";
         private const string WindowTemplatePath = "Assets/Unity/UI/Window.uxml";
         private const string TerminalTemplatePath = "Assets/Unity/UI/Terminal.uxml";
+        private const string FileManagerTemplatePath = "Assets/Unity/UI/FileManager.uxml";
         private const string ScenesFolder = "Assets/Scenes";
         private const string ScenePath = "Assets/Scenes/Main.unity";
 
@@ -34,7 +35,8 @@ namespace Siegebox.EditorTools
             var desktopTemplate = LoadTemplate(DesktopTemplatePath);
             var windowTemplate = LoadTemplate(WindowTemplatePath);
             var terminalTemplate = LoadTemplate(TerminalTemplatePath);
-            if (desktopTemplate == null || windowTemplate == null || terminalTemplate == null)
+            var fileManagerTemplate = LoadTemplate(FileManagerTemplatePath);
+            if (desktopTemplate == null || windowTemplate == null || terminalTemplate == null || fileManagerTemplate == null)
             {
                 return;
             }
@@ -56,6 +58,7 @@ namespace Siegebox.EditorTools
             serializedBridge.FindProperty("desktopTemplate").objectReferenceValue = desktopTemplate;
             serializedBridge.FindProperty("windowTemplate").objectReferenceValue = windowTemplate;
             serializedBridge.FindProperty("terminalTemplate").objectReferenceValue = terminalTemplate;
+            serializedBridge.FindProperty("fileManagerTemplate").objectReferenceValue = fileManagerTemplate;
             serializedBridge.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);

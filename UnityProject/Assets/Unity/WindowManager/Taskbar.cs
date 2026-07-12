@@ -50,6 +50,7 @@ namespace Siegebox.Unity
             }
 
             var button = new Button(launch) { text = label };
+            button.enableRichText = false;
             button.AddToClassList("taskbar-launcher");
             launchersRoot.Add(button);
         }
@@ -57,6 +58,7 @@ namespace Siegebox.Unity
         private void AddEntry(Window window)
         {
             var button = new Button(() => OnEntryClicked(window)) { text = window.Content.Title };
+            button.enableRichText = false;
             button.AddToClassList("taskbar-entry");
             entries[window] = button;
             entriesRoot.Add(button);

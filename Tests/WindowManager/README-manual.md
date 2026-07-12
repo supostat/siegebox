@@ -91,3 +91,57 @@ and is exercised in the editor, not by `dotnet test`. Run in Unity 6000.4.0f1.
 
 - [ ] `dotnet test Siegebox.sln` → 340/340 green.
 - [ ] Play-mode console clean: no errors or warnings during the whole checklist.
+
+# Application framework (Phase 6)
+
+## Setup
+
+- [ ] Open the project in the editor so it imports `FileManager.uxml`/`.uss` and the new
+      `.cs` files (generates their `.meta` files), then wire the new `KernelBridge` field:
+      either delete `Assets/Scenes/Main.unity` and re-run `Siegebox → Create Desktop Scene`,
+      or text-edit the scene YAML — insert after the `terminalTemplate:` line, 2-space
+      indented: `fileManagerTemplate: {fileID: 9197481963319205126, guid: <guid from
+      FileManager.uxml.meta>, type: 3}` — and reopen the scene in the editor afterwards
+      (do NOT save a stale in-memory copy over the edit).
+- [ ] Commit the `.meta` files the editor generates (`Core/App/*.cs`, `Unity/Apps/`,
+      `FileManager.uxml/.uss`) — mirrors the Phase-5 Setup step.
+
+## Launchers and open
+
+- [ ] Taskbar launchers appear in order `files`, `terminal`, `about` (registry
+      Descriptors sorted by Id, `about` appended last) — expected change from Phase 5.
+- [ ] `files` launcher opens the file manager focused, with a taskbar entry.
+- [ ] `open files` / `open terminal` typed in a terminal open windows identically
+      to the taskbar launchers.
+- [ ] `open files &` still opens the window and announces a job entry (`[1] pid`) —
+      open is a process command, not a builtin.
+- [ ] `open ghost` prints `open: ghost: no such app` on stderr, exit code 1.
+- [ ] `help` lists `open` among the commands.
+
+## File manager
+
+- [ ] `mkdir /d ; touch /d/a` in a terminal, then refocus the file manager →
+      the new entries appear.
+- [ ] Clicking a directory row navigates into it; `up` at `/` stays at `/`.
+- [ ] Directory rows show a trailing `/` and no size; file rows show the size
+      with a ` B` suffix; only directory rows react to clicks.
+- [ ] `mkdir /empty`, click into it → path bar shows `/empty`, the list is empty,
+      no error status.
+- [ ] Delete the file manager's current directory in a terminal, refocus the file
+      manager → the status line shows the error, no exception in the console.
+- [ ] `touch '/<b>x</b>'` → the name renders literally in the file manager rows
+      (rich text off).
+- [ ] Closing the file manager window is clean: no errors, taskbar entry removed.
+
+## Teardown
+
+- [ ] Stop Play mode with several windows open (file manager included) → console
+      stays clean (CloseAll focus-fallback suppression).
+
+## Regression
+
+- [ ] Windowing-layer grep check still passes:
+      `grep -ri terminal UnityProject/Assets/Unity/WindowManager/*.cs` matches only
+      doc comments; same for App types — the windowing layer keeps zero kernel and
+      zero app references.
+- [ ] `dotnet test Siegebox.sln` → 355/355 green.

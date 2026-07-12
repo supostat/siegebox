@@ -1,0 +1,68 @@
+.file-manager {
+    flex-grow: 1;
+    flex-direction: column;
+    background-color: rgb(18, 18, 24);
+}
+
+.path-row {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgb(28, 28, 36);
+    flex-shrink: 0;
+}
+
+.up-button {
+    color: rgb(200, 200, 210);
+    background-color: rgb(50, 50, 60);
+    border-width: 0;
+    border-radius: 3px;
+    margin: 4px 2px;
+    padding: 2px 10px;
+}
+
+.up-button:hover {
+    background-color: rgb(70, 70, 84);
+}
+
+.path-label {
+    white-space: pre;
+    color: rgb(214, 214, 214);
+}
+
+.entry-scroll {
+    flex-grow: 1;
+}
+
+.entry-list {
+    flex-shrink: 0;
+}
+
+.entry-row {
+    flex-direction: row;
+    color: rgb(214, 214, 214);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    padding: 2px 8px;
+    -unity-text-align: middle-left;
+}
+
+.entry-row--directory {
+    color: rgb(120, 180, 240);
+}
+
+.entry-row--directory:hover {
+    background-color: rgb(38, 38, 48);
+}
+
+.entry-size {
+    color: rgb(130, 130, 140);
+    margin-left: 8px;
+}
+
+.status-label {
+    flex-shrink: 0;
+    color: rgb(220, 120, 120);
+    background-color: rgb(28, 28, 36);
+    padding: 2px 6px;
+    display: none;
+}

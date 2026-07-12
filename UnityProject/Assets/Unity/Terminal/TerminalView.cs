@@ -36,7 +36,6 @@ namespace Siegebox.Unity
             commandInput.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             outputScroll.verticalScroller.valueChanged += OnScrolled;
             outputText.RegisterCallback<GeometryChangedEvent>(OnOutputGeometryChanged);
-            FocusInput();
         }
 
         public event Action<string> LineSubmitted;

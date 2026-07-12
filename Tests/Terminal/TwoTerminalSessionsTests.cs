@@ -97,6 +97,21 @@ namespace Siegebox.Terminal.Tests
         }
 
         [Test]
+        public void Jobs_lists_only_the_submitting_sessions_jobs()
+        {
+            var rig = new TwoSessionRig();
+            rig.TerminalA.SubmitLine("spin &");
+            rig.TickAndPumpAll();
+
+            rig.TerminalB.SubmitLine("jobs");
+            rig.TerminalA.SubmitLine("jobs");
+            rig.TickAndPumpAll();
+
+            Assert.That(rig.TerminalA.ScrollbackText, Does.Contain("Running spin"));
+            Assert.That(rig.TerminalB.ScrollbackText, Does.Not.Contain("[1]"));
+        }
+
+        [Test]
         public void Cross_session_wait_returns_127()
         {
             var rig = new TwoSessionRig();

@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+using System;
 using System.Diagnostics;
+using Siegebox.App;
 using Siegebox.Process;
 using Siegebox.Shell;
 using Siegebox.Terminal;
@@ -11,9 +12,9 @@ namespace Siegebox.Unity
 {
     /// <summary>
     /// The single MonoBehaviour and composition root: builds the kernel once, boots the
-    /// desktop with its window manager and taskbar, opens terminals through the manager,
-    /// ticks the scheduler inside a frame budget and pumps every open terminal. A tick
-    /// that overruns the budget skips exactly one frame to catch up.
+    /// desktop with its window manager and taskbar, registers every app in the registry,
+    /// launches apps through the host, ticks the scheduler inside a frame budget and pumps
+    /// every open window. A tick that overruns the budget skips exactly one frame to catch up.
     /// </summary>
     public sealed class KernelBridge : MonoBehaviour
     {
@@ -21,15 +22,16 @@ namespace Siegebox.Unity
         [SerializeField] private VisualTreeAsset desktopTemplate;
         [SerializeField] private VisualTreeAsset windowTemplate;
         [SerializeField] private VisualTreeAsset terminalTemplate;
+        [SerializeField] private VisualTreeAsset fileManagerTemplate;
         [SerializeField] private int tickBudgetMilliseconds = 8;
 
         private readonly Stopwatch tickStopwatch = new Stopwatch();
-        private readonly List<TerminalContent> terminals = new List<TerminalContent>();
         private VirtualFileSystem vfs;
         private Scheduler scheduler;
         private CommandRegistry commands;
+        private AppRegistry appRegistry;
         private WindowManager windowManager;
-        private Taskbar taskbar;
+        private AppHost appHost;
         private bool baseCommandsInstalled;
         private bool skipNextTick;
 
@@ -38,14 +40,22 @@ namespace Siegebox.Unity
             vfs = new VirtualFileSystem();
             scheduler = new Scheduler();
             commands = new CommandRegistry();
+            appRegistry = new AppRegistry();
 
             var desktop = new Desktop(uiDocument.rootVisualElement, desktopTemplate);
             windowManager = new WindowManager(desktop.WindowLayer, windowTemplate);
-            taskbar = new Taskbar(desktop.TaskbarRoot, windowManager);
-            windowManager.WindowClosed += OnWindowClosed;
-            taskbar.AddLauncher("terminal", OpenTerminalWindow);
+            var taskbar = new Taskbar(desktop.TaskbarRoot, windowManager);
+            appHost = new AppHost(windowManager);
+            appRegistry.Register(new AppDescriptor("terminal", "terminal", CreateTerminalApp));
+            appRegistry.Register(new AppDescriptor("files", "files", CreateFileManagerApp));
+            commands.Register(new OpenCommand(appRegistry, appHost));
+            foreach (var descriptor in appRegistry.Descriptors)
+            {
+                taskbar.AddLauncher(descriptor.DisplayName, () => appHost.Launch(descriptor));
+            }
+
             taskbar.AddLauncher("about", OpenAboutWindow);
-            OpenTerminalWindow();
+            LaunchApp("terminal");
         }
 
         private void Update()
@@ -56,9 +66,10 @@ namespace Siegebox.Unity
             }
 
             TickWithinBudget();
-            for (var terminalIndex = 0; terminalIndex < terminals.Count; terminalIndex++)
+            var windows = windowManager.Windows;
+            for (var windowIndex = 0; windowIndex < windows.Count; windowIndex++)
             {
-                terminals[terminalIndex].Pump();
+                windows[windowIndex].Content.Pump();
             }
         }
 
@@ -81,16 +92,26 @@ namespace Siegebox.Unity
             skipNextTick = tickStopwatch.ElapsedMilliseconds > tickBudgetMilliseconds;
         }
 
-        private void OpenTerminalWindow()
+        private IApp CreateTerminalApp()
         {
             var builtins = new BuiltinRegistry();
             var jobs = new JobTable();
             InstallCommandSet(builtins, jobs);
             var shellSession = new ShellSession("/", new Credentials(0));
             var terminalSession = new TerminalSession(scheduler, vfs, commands, builtins, shellSession, jobs);
-            var terminal = new TerminalContent(terminalTemplate, terminalSession);
-            terminals.Add(terminal);
-            windowManager.Open(terminal);
+            return new TerminalContent(terminalTemplate, terminalSession);
+        }
+
+        private IApp CreateFileManagerApp() => new FileManagerApp(fileManagerTemplate, vfs, new Credentials(0));
+
+        private void LaunchApp(string appId)
+        {
+            if (!appRegistry.TryGet(appId, out var descriptor))
+            {
+                throw new InvalidOperationException($"App '{appId}' is not registered.");
+            }
+
+            appHost.Launch(descriptor);
         }
 
         private void OpenAboutWindow()
@@ -108,14 +129,6 @@ namespace Siegebox.Unity
 
             BaseCommandSet.Install(commands, builtins, vfs, scheduler, jobs);
             baseCommandsInstalled = true;
-        }
-
-        private void OnWindowClosed(Window window)
-        {
-            if (window.Content is TerminalContent terminal)
-            {
-                terminals.Remove(terminal);
-            }
         }
     }
 }

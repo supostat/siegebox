@@ -35,6 +35,10 @@ namespace Siegebox.Unity
 
         public VisualElement Root { get; }
 
+        public void Pump()
+        {
+        }
+
         public void OnFocusGained()
         {
         }
