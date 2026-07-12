@@ -184,3 +184,30 @@ and is exercised in the editor, not by `dotnet test`. Run in Unity 6000.4.0f1.
 ## Regression
 
 - [ ] `dotnet test Siegebox.sln` → 520/520 green.
+
+# User model & authentication (Phase 7 follow-up)
+
+## Launch identity
+
+- [ ] The starting terminal opens as the unprivileged `player`, not root: the prompt ends
+      with ` $ ` (a root session would end with ` # `), and the working directory is
+      `/home/player`.
+- [ ] `cat /etc/passwd` succeeds (world-readable, shows `root` and `player`); `cat /etc/shadow`
+      fails with a permission error (root-only 0600 — an unprivileged process cannot read the
+      password hashes).
+
+## su authentication
+
+- [ ] `su root`, then at the `Password:` prompt type `root` → the session becomes root and the
+      prompt switches to ` # `. (Password echo is not suppressed yet — a known limitation.)
+- [ ] `su root` with a wrong password → `su: authentication failure`, exit 1, you stay
+      `player` (prompt still ` $ `).
+- [ ] From a root session, `su player` switches to player with NO password prompt (root
+      switches to anyone freely); the prompt returns to ` $ `.
+- [ ] `su ghost` (unknown user) → `su: user 'ghost' does not exist`, exit 1, identity unchanged.
+- [ ] After dropping to `player`, a root-only action (e.g. `mkdir /root/x`) fails with a
+      permission error — the identity is real, not cosmetic.
+
+## Regression
+
+- [ ] `dotnet test Siegebox.sln` → 557/557 green.
