@@ -1,7 +1,9 @@
 {
     "name": "Siegebox.Core",
     "rootNamespace": "Siegebox.Vfs",
-    "references": [],
+    "references": [
+        "MoonSharp.Interpreter"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -23,6 +23,19 @@ namespace Siegebox.Shell
             commands.Add(command.Name, command);
         }
 
+        public void Unregister(string name)
+        {
+            if (name is null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (!commands.Remove(name))
+            {
+                throw new ArgumentException($"Command '{name}' is not registered.", nameof(name));
+            }
+        }
+
         public bool TryGet(string name, out ICommand command)
         {
             if (name is null)

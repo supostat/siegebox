@@ -90,5 +90,42 @@ namespace Siegebox.Vfs.Tests
             Assert.That(vfs.Stat("/dir/../sibling", Root).Type, Is.EqualTo(NodeType.Directory));
             Assert.That(vfs.Stat("/dir/./inner", Root).Type, Is.EqualTo(NodeType.File));
         }
+
+        [Test]
+        public void Create_with_a_dotdot_final_segment_yields_EINVAL()
+        {
+            var vfs = new VirtualFileSystem();
+            vfs.CreateDirectory("/dir", Mode(0b111_101_101), Root);
+            var error = Assert.Throws<VfsException>(() => vfs.CreateFile("/dir/..", Mode(0b110_100_100), Root));
+            Assert.That(error.Error, Is.EqualTo(VfsError.EINVAL));
+        }
+
+        [Test]
+        public void Delete_with_a_dotdot_final_segment_yields_EINVAL()
+        {
+            var vfs = new VirtualFileSystem();
+            vfs.CreateDirectory("/dir", Mode(0b111_101_101), Root);
+            var error = Assert.Throws<VfsException>(() => vfs.Delete("/dir/..", Root));
+            Assert.That(error.Error, Is.EqualTo(VfsError.EINVAL));
+        }
+
+        [Test]
+        public void Move_to_a_dotdot_final_segment_destination_yields_EINVAL()
+        {
+            var vfs = new VirtualFileSystem();
+            vfs.CreateFile("/a", Mode(0b110_100_100), Root);
+            vfs.CreateDirectory("/b", Mode(0b111_101_101), Root);
+            var error = Assert.Throws<VfsException>(() => vfs.Move("/a", "/b/..", Root));
+            Assert.That(error.Error, Is.EqualTo(VfsError.EINVAL));
+        }
+
+        [Test]
+        public void Resolving_a_dotdot_final_segment_still_works_for_lookups()
+        {
+            var vfs = new VirtualFileSystem();
+            vfs.CreateDirectory("/dir", Mode(0b111_101_101), Root);
+            Assert.That(vfs.Stat("/dir/..", Root).Type, Is.EqualTo(NodeType.Directory));
+            Assert.That(() => vfs.List("/dir/..", Root), Throws.Nothing);
+        }
     }
 }

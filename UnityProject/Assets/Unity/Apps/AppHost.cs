@@ -6,8 +6,8 @@ namespace Siegebox.Unity
 {
     /// <summary>
     /// The sole bridge from launch requests to windows: materializes the descriptor's app,
-    /// requires it to provide window content, and opens it through the window manager with
-    /// the launch hook already run.
+    /// wraps it into window content, and opens it through the window manager with the
+    /// launch hook already run. A factory may only hand out fresh instances.
     /// </summary>
     public sealed class AppHost : IAppLauncher
     {
@@ -28,11 +28,12 @@ namespace Siegebox.Unity
             try
             {
                 var app = descriptor.CreateInstance();
-                if (!(app is IWindowContent content))
+                if (app.State != AppState.Created)
                 {
-                    throw new InvalidOperationException($"App '{descriptor.Id}' does not provide window content.");
+                    throw new InvalidOperationException($"App '{descriptor.Id}' factory returned an already launched instance.");
                 }
 
+                var content = ContentFor(descriptor, app);
                 app.OnLaunched();
                 windowManager.Open(content);
             }
@@ -41,6 +42,21 @@ namespace Siegebox.Unity
                 Debug.LogException(error);
                 throw;
             }
+        }
+
+        private static IWindowContent ContentFor(AppDescriptor descriptor, IApp app)
+        {
+            if (app is IWindowContent content)
+            {
+                return content;
+            }
+
+            if (app is ITextContentApp textApp)
+            {
+                return new TextAppContent(app, textApp);
+            }
+
+            throw new InvalidOperationException($"App '{descriptor.Id}' does not provide window content.");
         }
     }
 }

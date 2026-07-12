@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "Siegebox.Core",
+        "MoonSharp.Interpreter",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

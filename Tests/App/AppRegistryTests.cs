@@ -60,6 +60,28 @@ namespace Siegebox.App.Tests
 
             Assert.Throws<ArgumentNullException>(() => registry.Register(null));
             Assert.Throws<ArgumentNullException>(() => registry.TryGet(null, out _));
+            Assert.Throws<ArgumentNullException>(() => registry.Unregister(null));
+        }
+
+        [Test]
+        public void Unregistered_app_is_gone_and_can_be_registered_again()
+        {
+            var registry = new AppRegistry();
+            registry.Register(Descriptor("files"));
+
+            registry.Unregister("files");
+
+            Assert.That(registry.TryGet("files", out _), Is.False);
+            Assert.That(() => registry.Register(Descriptor("files")), Throws.Nothing);
+            Assert.That(registry.TryGet("files", out _), Is.True);
+        }
+
+        [Test]
+        public void Unregister_of_an_absent_app_throws()
+        {
+            var registry = new AppRegistry();
+
+            Assert.Throws<ArgumentException>(() => registry.Unregister("absent"));
         }
     }
 }

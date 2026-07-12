@@ -24,6 +24,19 @@ namespace Siegebox.App
             descriptors.Add(descriptor.Id, descriptor);
         }
 
+        public void Unregister(string id)
+        {
+            if (id is null)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            if (!descriptors.Remove(id))
+            {
+                throw new ArgumentException($"App '{id}' is not registered.", nameof(id));
+            }
+        }
+
         public bool TryGet(string id, out AppDescriptor descriptor)
         {
             if (id is null)

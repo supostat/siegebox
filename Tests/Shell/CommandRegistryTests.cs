@@ -42,6 +42,35 @@ namespace Siegebox.Shell.Tests
         }
 
         [Test]
+        public void Unregistered_command_is_gone_and_can_be_registered_again()
+        {
+            var registry = new CommandRegistry();
+            registry.Register(new ProbeCommand("probe"));
+
+            registry.Unregister("probe");
+
+            Assert.That(registry.TryGet("probe", out _), Is.False);
+            Assert.That(() => registry.Register(new ProbeCommand("probe")), Throws.Nothing);
+            Assert.That(registry.TryGet("probe", out _), Is.True);
+        }
+
+        [Test]
+        public void Unregister_of_an_absent_command_throws()
+        {
+            var registry = new CommandRegistry();
+
+            Assert.Throws<ArgumentException>(() => registry.Unregister("absent"));
+        }
+
+        [Test]
+        public void Unregister_rejects_null()
+        {
+            var registry = new CommandRegistry();
+
+            Assert.Throws<ArgumentNullException>(() => registry.Unregister(null));
+        }
+
+        [Test]
         public void Builtin_wins_over_a_command_with_the_same_name()
         {
             var harness = new ShellHarness();

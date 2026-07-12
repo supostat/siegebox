@@ -35,6 +35,11 @@ namespace Siegebox.Vfs
             }
 
             var name = segments[segments.Count - 1];
+            if (name == ParentSegment)
+            {
+                throw new VfsException(VfsError.EINVAL, path);
+            }
+
             var followCount = 0;
             var parent = WalkFrom(root, segments, segments.Count - 1, credentials, path, true, ref followCount);
             if (parent.Type != NodeType.Directory)

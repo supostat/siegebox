@@ -1,0 +1,7 @@
+{
+  "id": "example",
+  "version": "0.1.0",
+  "dependencies": ["base"],
+  "loadOrder": 100,
+  "scripts": ["hello_command.lua", "hello_app.lua"]
+}

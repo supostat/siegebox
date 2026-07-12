@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Siegebox.Events;
 using Siegebox.Vfs;
 
 namespace Siegebox.Process
@@ -7,7 +8,11 @@ namespace Siegebox.Process
     /// <summary>
     /// Sole owner of the pid table: spawns, steps, kills, and reaps processes with a budgeted
     /// cooperative round-robin <see cref="Tick"/>. Finished processes stay queryable as corpses
-    /// until the next <see cref="Tick"/> reaps them.
+    /// until the next <see cref="Tick"/> reaps them. Publishes process-lifecycle hooks
+    /// (<see cref="KernelEvent.ProcessSpawned"/> on spawn, <see cref="KernelEvent.ProcessExited"/>
+    /// once the single death path has retained the exit code and closed descriptors) on the
+    /// injected <see cref="EventBus"/>; subscriber faults are contained by the bus and never break
+    /// <see cref="Tick"/>.
     /// </summary>
     public sealed class Scheduler
     {
@@ -20,6 +25,7 @@ namespace Siegebox.Process
         private readonly List<int> schedulingOrder = new List<int>();
         private readonly ExitCodeLedger exitCodeLedger = new ExitCodeLedger();
         private readonly WakeScanner wakeScanner;
+        private readonly EventBus events;
         private readonly int tickBudget;
         private int nextPid = 1;
         private int cursor;
@@ -33,7 +39,7 @@ namespace Siegebox.Process
         /// <see cref="WakeConditionKind.ProcessExit"/> checks are table lookups and consume
         /// no probe budget.
         /// </summary>
-        public Scheduler(int tickBudget = DefaultTickBudget, int probeBudget = DefaultProbeBudget)
+        public Scheduler(int tickBudget = DefaultTickBudget, int probeBudget = DefaultProbeBudget, EventBus? events = null)
         {
             if (tickBudget <= 0)
             {
@@ -41,6 +47,7 @@ namespace Siegebox.Process
             }
 
             this.tickBudget = tickBudget;
+            this.events = events ?? new EventBus();
             wakeScanner = new WakeScanner(probeBudget, IsProcessExitSatisfied);
         }
 
@@ -93,6 +100,7 @@ namespace Siegebox.Process
             nextPid++;
             table.Add(pid, new ProcessEntry(pid, process, name));
             schedulingOrder.Add(pid);
+            events.Publish(KernelEvent.ProcessSpawned(pid, name, process.Context.Credentials.Uid));
             return pid;
         }
 
@@ -297,6 +305,7 @@ namespace Siegebox.Process
             entry.State = ProcessState.Finished;
             exitCodeLedger.Retain(entry.Pid, entry.ExitCode);
             entry.Process.Context.FileDescriptors.CloseAll();
+            events.Publish(KernelEvent.ProcessExited(entry.Pid, entry.Name, entry.ExitCode));
         }
 
         private void Reap()

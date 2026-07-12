@@ -1,8 +1,15 @@
 using System;
 using System.Collections.Generic;
+using Siegebox.Events;
 
 namespace Siegebox.Vfs
 {
+    /// <summary>
+    /// The complete-mediation door to the permissioned tree: every open goes through the
+    /// resolver under the caller's credentials. Publishes a <see cref="KernelEvent.FileOpened"/>
+    /// hook on the injected <see cref="EventBus"/> after a successful <see cref="Open"/> /
+    /// <see cref="OpenForWrite"/> (never on a denied open, which grants no capability).
+    /// </summary>
     public sealed class VirtualFileSystem
     {
         private const int RootUid = 0;
@@ -11,24 +18,30 @@ namespace Siegebox.Vfs
         private const int DeviceDirectoryMode = 0b111_101_101;
         private const int NullDeviceMode = 0b110_110_110;
         private const int SymlinkMode = 0b111_111_111;
+        private const string ReadAccessName = "read";
+        private const string WriteAccessName = "write";
+        private const string ReadWriteAccessName = "readwrite";
 
         private readonly VfsNode root;
         private readonly PathResolver resolver;
+        private readonly EventBus events;
 
-        public VirtualFileSystem()
+        public VirtualFileSystem(EventBus? events = null)
         {
+            this.events = events ?? new EventBus();
             root = VfsNode.NewDirectory(string.Empty, RootUid, RootGid, new PermissionMode(RootDirectoryMode));
             resolver = new PathResolver(root);
             MountStandardDevices();
         }
 
-        private VirtualFileSystem(VfsNode importedRoot)
+        private VirtualFileSystem(VfsNode importedRoot, EventBus? events)
         {
+            this.events = events ?? new EventBus();
             root = importedRoot;
             resolver = new PathResolver(root);
         }
 
-        public static VirtualFileSystem Import(VfsNodeSnapshot snapshot)
+        public static VirtualFileSystem Import(VfsNodeSnapshot snapshot, EventBus? events = null)
         {
             if (snapshot is null)
             {
@@ -40,7 +53,7 @@ namespace Siegebox.Vfs
                 throw new VfsException(VfsError.EINVAL, snapshot.Name);
             }
 
-            return new VirtualFileSystem(VfsNode.FromSnapshot(snapshot));
+            return new VirtualFileSystem(VfsNode.FromSnapshot(snapshot), events);
         }
 
         public void CreateFile(string path, PermissionMode mode, Credentials credentials)
@@ -65,13 +78,15 @@ namespace Siegebox.Vfs
         public IByteStream Open(string path, OpenMode mode, Credentials credentials)
         {
             var node = resolver.Resolve(path, credentials, AccessFor(mode), true);
-            return node.Type switch
+            var stream = node.Type switch
             {
                 NodeType.Directory => throw new VfsException(VfsError.EISDIR, path),
                 NodeType.Device => OpenDevice(node),
                 NodeType.File => new FileStream(node.Content!, mode),
                 _ => throw new VfsException(VfsError.EINVAL, path)
             };
+            events.Publish(KernelEvent.FileOpened(path, credentials.Uid, AccessNameFor(mode)));
+            return stream;
         }
 
         /// <summary>
@@ -80,16 +95,20 @@ namespace Siegebox.Vfs
         /// </summary>
         public IByteStream OpenForWrite(string path, WriteBehavior behavior, PermissionMode createMode, Credentials credentials)
         {
+            IByteStream stream;
             try
             {
-                return OpenExistingForWrite(path, behavior, credentials);
+                stream = OpenExistingForWrite(path, behavior, credentials);
             }
             catch (VfsException error) when (error.Error == VfsError.ENOENT)
             {
                 var targetPath = resolver.FinalTargetPathOf(path, credentials);
                 CreateFile(targetPath, createMode, credentials);
-                return OpenExistingForWrite(targetPath, behavior, credentials);
+                stream = OpenExistingForWrite(targetPath, behavior, credentials);
             }
+
+            events.Publish(KernelEvent.FileOpened(path, credentials.Uid, WriteAccessName));
+            return stream;
         }
 
         /// <summary>Resolves to an enterable directory; returns its canonical absolute path.</summary>
@@ -301,6 +320,14 @@ namespace Siegebox.Vfs
             OpenMode.Read => PermissionMode.ReadBit,
             OpenMode.Write => PermissionMode.WriteBit,
             OpenMode.ReadWrite => PermissionMode.ReadBit | PermissionMode.WriteBit,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode))
+        };
+
+        private static string AccessNameFor(OpenMode mode) => mode switch
+        {
+            OpenMode.Read => ReadAccessName,
+            OpenMode.Write => WriteAccessName,
+            OpenMode.ReadWrite => ReadWriteAccessName,
             _ => throw new ArgumentOutOfRangeException(nameof(mode))
         };
     }
