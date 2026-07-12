@@ -342,6 +342,7 @@ MonoBehaviour:
   desktopTemplate: {fileID: 9197481963319205126, guid: 42b536d93e60f45aaa7b08c1e644bfee, type: 3}
   windowTemplate: {fileID: 9197481963319205126, guid: 67dd6d776cc21412ca8c7a01cd6caef7, type: 3}
   terminalTemplate: {fileID: 9197481963319205126, guid: a0ced14de1a2443b99cb4d1a231c5c03, type: 3}
+  fileManagerTemplate: {fileID: 9197481963319205126, guid: f17e54be470aa45b995b7f1a5675215d, type: 3}
   tickBudgetMilliseconds: 8
 --- !u!114 &1754642325
 MonoBehaviour:
