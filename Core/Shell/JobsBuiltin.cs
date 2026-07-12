@@ -27,7 +27,7 @@ namespace Siegebox.Shell
 
         public string Name => "jobs";
 
-        public BuiltinResult Execute(ShellSession session, IReadOnlyList<string> arguments)
+        public BuiltinResult Execute(ShellSession session, IReadOnlyList<string> arguments, string? inputLine)
         {
             if (session is null)
             {

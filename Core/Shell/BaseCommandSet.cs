@@ -1,5 +1,6 @@
 using System;
 using Siegebox.Process;
+using Siegebox.Security;
 using Siegebox.Vfs;
 
 namespace Siegebox.Shell
@@ -64,7 +65,7 @@ namespace Siegebox.Shell
 
             builtins.Register(new CdBuiltin(vfs));
             builtins.Register(new ExportBuiltin());
-            builtins.Register(new SuBuiltin());
+            builtins.Register(new SuBuiltin(new AuthenticationService(vfs)));
             builtins.Register(new WaitBuiltin(scheduler, jobs));
             builtins.Register(new JobsBuiltin(scheduler, jobs));
         }

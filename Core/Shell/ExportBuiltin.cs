@@ -7,7 +7,7 @@ namespace Siegebox.Shell
     {
         public string Name => "export";
 
-        public BuiltinResult Execute(ShellSession session, IReadOnlyList<string> arguments)
+        public BuiltinResult Execute(ShellSession session, IReadOnlyList<string> arguments, string? inputLine)
         {
             if (session is null)
             {

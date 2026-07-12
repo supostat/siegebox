@@ -143,6 +143,7 @@ namespace Siegebox.Scripting.Tests
         public void Ctx_vfs_stashed_by_a_privileged_command_cannot_be_reused_after_dropping_privilege()
         {
             var (harness, host, _) = Build(0);
+            harness.SeedUsers();
             SeedFileAsRoot(harness.Vfs, "/secret.txt", 0b110_000_000, "topsecret");
             host.RunChunk(
                 "local captured" +
@@ -151,7 +152,7 @@ namespace Siegebox.Scripting.Tests
                 "confuseddeputy");
 
             harness.Run("cache");
-            harness.Run("su 1000");
+            harness.Run("su player");
             harness.DrainOutput();
             harness.DrainError();
 

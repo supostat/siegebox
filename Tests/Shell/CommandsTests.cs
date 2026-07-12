@@ -324,10 +324,11 @@ namespace Siegebox.Shell.Tests
         public void Non_root_cannot_kill_a_root_owned_process()
         {
             var harness = new ShellHarness();
+            harness.SeedUsers();
             harness.RegisterCommand(new SpinCommand());
             harness.Run("spin &", maxTicks: 8);
             var spinPid = ShellHarness.AnnouncedPid(harness.DrainError());
-            harness.Run("su 1000");
+            harness.Run("su player");
 
             harness.Run($"kill {spinPid}");
 
@@ -341,10 +342,12 @@ namespace Siegebox.Shell.Tests
         public void Root_kills_a_foreign_uid_process()
         {
             var harness = new ShellHarness();
+            harness.SeedUsers();
             harness.RegisterCommand(new SpinCommand());
-            harness.Run("su 1000");
+            harness.Run("su player");
             harness.Run("spin &", maxTicks: 8);
             var spinPid = ShellHarness.AnnouncedPid(harness.DrainError());
+            harness.FeedInput("root\n");
             harness.Run("su");
 
             harness.Run($"kill {spinPid}");
@@ -358,8 +361,9 @@ namespace Siegebox.Shell.Tests
         public void Non_root_kills_its_own_process()
         {
             var harness = new ShellHarness();
+            harness.SeedUsers();
             harness.RegisterCommand(new SpinCommand());
-            harness.Run("su 1000");
+            harness.Run("su player");
             harness.Run("spin &", maxTicks: 8);
             var spinPid = ShellHarness.AnnouncedPid(harness.DrainError());
 

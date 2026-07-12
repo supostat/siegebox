@@ -98,6 +98,16 @@ namespace Siegebox.Shell.Tests
             stream.Write(bytes, 0, bytes.Length);
         }
 
+        public void SeedUsers() => Siegebox.Security.UserSeed.Seed(Vfs);
+
+        public void FeedInput(string text)
+        {
+            var bytes = Encoding.UTF8.GetBytes(text);
+            TerminalInput.Write(bytes, 0, bytes.Length);
+        }
+
+        public string DrainInput() => DrainToString(TerminalInput);
+
         private static string DrainToString(IByteStream stream)
         {
             var text = new StringBuilder();

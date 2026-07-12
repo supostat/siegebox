@@ -48,19 +48,6 @@ namespace Siegebox.Shell.Tests
         }
 
         [Test]
-        public void Su_switches_identity_and_root_only_operations_fail_afterwards()
-        {
-            var harness = new ShellHarness();
-
-            harness.Run("su 1000");
-            Assert.That(harness.Session.Credentials.Uid, Is.EqualTo(1000));
-
-            harness.Run("mkdir /nope");
-            Assert.That(harness.DrainError(), Does.Contain("mkdir: /nope: Permission denied"));
-            Assert.That(harness.Session.LastExitCode, Is.EqualTo(1));
-        }
-
-        [Test]
         public void Builtin_inside_a_pipe_runs_on_a_session_clone()
         {
             var harness = new ShellHarness();
@@ -153,18 +140,6 @@ namespace Siegebox.Shell.Tests
         }
 
         [Test]
-        public void Su_with_a_non_numeric_uid_fails()
-        {
-            var harness = new ShellHarness();
-
-            harness.Run("su abc");
-
-            Assert.That(harness.DrainError(), Does.Contain("su: abc"));
-            Assert.That(harness.Session.LastExitCode, Is.EqualTo(1));
-            Assert.That(harness.Session.Credentials.Uid, Is.EqualTo(0));
-        }
-
-        [Test]
         public void Builtin_output_inside_a_pipe_flows_through_the_pipe()
         {
             var harness = new ShellHarness();
@@ -177,43 +152,6 @@ namespace Siegebox.Shell.Tests
             Assert.That(harness.DrainOutput(), Is.EqualTo($"[1] {spinPid} Running spin\n"));
             Assert.That(harness.Session.LastExitCode, Is.EqualTo(0));
             Assert.That(harness.Scheduler.ProcessCount, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void Su_sets_uid_and_group_ids()
-        {
-            var harness = new ShellHarness();
-
-            harness.Run("su 1000 5 7");
-
-            Assert.That(harness.Session.Credentials.Uid, Is.EqualTo(1000));
-            Assert.That(harness.Session.Credentials.InGroup(5), Is.True);
-            Assert.That(harness.Session.Credentials.InGroup(7), Is.True);
-            Assert.That(harness.Session.LastExitCode, Is.EqualTo(0));
-        }
-
-        [Test]
-        public void Su_without_arguments_returns_to_root()
-        {
-            var harness = new ShellHarness();
-            harness.Run("su 1000");
-
-            harness.Run("su");
-
-            Assert.That(harness.Session.Credentials.Uid, Is.EqualTo(0));
-            Assert.That(harness.Session.LastExitCode, Is.EqualTo(0));
-        }
-
-        [Test]
-        public void Su_with_an_invalid_gid_fails_and_leaves_the_session_unchanged()
-        {
-            var harness = new ShellHarness();
-
-            harness.Run("su 1000 abc");
-
-            Assert.That(harness.DrainError(), Does.Contain("su: abc"));
-            Assert.That(harness.Session.LastExitCode, Is.EqualTo(1));
-            Assert.That(harness.Session.Credentials.Uid, Is.EqualTo(0));
         }
 
         [Test]

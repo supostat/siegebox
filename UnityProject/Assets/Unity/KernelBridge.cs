@@ -5,6 +5,7 @@ using Siegebox.App;
 using Siegebox.Events;
 using Siegebox.Process;
 using Siegebox.Scripting;
+using Siegebox.Security;
 using Siegebox.Shell;
 using Siegebox.Terminal;
 using Siegebox.Vfs;
@@ -31,6 +32,7 @@ namespace Siegebox.Unity
 
         private readonly Stopwatch tickStopwatch = new Stopwatch();
         private VirtualFileSystem vfs;
+        private AuthenticationService authentication;
         private Scheduler scheduler;
         private CommandRegistry commands;
         private AppRegistry appRegistry;
@@ -42,6 +44,7 @@ namespace Siegebox.Unity
         {
             var events = new EventBus((kernelEvent, handlerError) => Debug.LogException(handlerError));
             vfs = new VirtualFileSystem(events);
+            authentication = new AuthenticationService(vfs);
             scheduler = new Scheduler(events: events);
             commands = new CommandRegistry();
             appRegistry = new AppRegistry();
@@ -109,6 +112,7 @@ namespace Siegebox.Unity
 
         private void InstallBaseMod()
         {
+            UserSeed.Seed(vfs);
             var bootBuiltins = new BuiltinRegistry();
             var bootJobs = new JobTable();
             BaseCommandSet.Install(commands, bootBuiltins, vfs, scheduler, bootJobs);
@@ -123,12 +127,16 @@ namespace Siegebox.Unity
             var builtins = new BuiltinRegistry();
             var jobs = new JobTable();
             BaseCommandSet.InstallBuiltins(builtins, vfs, scheduler, jobs);
-            var shellSession = new ShellSession("/", new Credentials(0));
+            var shellSession = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
             var terminalSession = new TerminalSession(scheduler, vfs, commands, builtins, shellSession, jobs);
             return new TerminalContent(terminalTemplate, terminalSession);
         }
 
-        private IApp CreateFileManagerApp() => new FileManagerApp(fileManagerTemplate, vfs, new Credentials(0));
+        private IApp CreateFileManagerApp()
+        {
+            var session = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
+            return new FileManagerApp(fileManagerTemplate, vfs, session.Credentials);
+        }
 
         private static IApp CreateAboutApp() => new StaticTextApp("about", "Siegebox — a desktop inside the game.");
 
