@@ -145,3 +145,42 @@ and is exercised in the editor, not by `dotnet test`. Run in Unity 6000.4.0f1.
       doc comments; same for App types — the windowing layer keeps zero kernel and
       zero app references.
 - [ ] `dotnet test Siegebox.sln` → 355/355 green.
+
+# Extensibility & Scripting (Phase 7)
+
+## Setup
+
+- [ ] Open the project in the editor so it imports the new `Core/Events`, `Core/Scripting`,
+      and `Unity/Apps/TextAppContent.cs` files (generates their `.meta`) and resolves the
+      MoonSharp UPM package (`org.moonsharp.moonsharp`, pinned commit in
+      `Packages/manifest.json`) into `packages-lock.json` — both are already committed with
+      `5678167`; a clean editor open should show no import errors and no re-resolution diff.
+- [ ] The `mods/` folder sits at the repo root (next to `Core/`, `UnityProject/`), containing
+      `mods/example/{manifest.json, hello_command.lua, hello_app.lua}`. In the editor the
+      mods root resolves to `<repo>/mods` (`Application.dataPath/../../mods`).
+
+## Mods, Lua command, and Lua app
+
+- [ ] On Play, the taskbar shows launchers `about`, `files`, `hello`, `terminal` (registry
+      Descriptors sorted by Id — `hello` is the Lua app from `mods/example`, proving a disk
+      mod loaded and registered through the same registry as C# content).
+- [ ] In a terminal, `hello` prints `hello from lua` (exit 0); `hello world` prints
+      `hello, world`. `echo hi | hello` runs a Lua command inside a pipe. `help` lists
+      `hello` among the commands — a Lua command is indistinguishable from a C# one.
+- [ ] `open hello-app` (or the `hello` taskbar launcher) opens the Lua app's window showing
+      `hello from a lua app`; refocusing it a few times updates the text to `focused N times`
+      (on_focus hook fires). Closing it is clean, taskbar entry removed.
+- [ ] `about` still opens (now a registered `StaticTextApp`, not the last taskbar hardcode).
+
+## Sandbox and mod-loader behavior
+
+- [ ] Temporarily add a second mod dir `mods/bad/` with `manifest.json` naming a script that
+      calls `siegebox.register_command("<b>x</b>", ...)` or `error(...)` → on Play the console
+      shows a single `mod 'bad' failed: …` line and the game still boots with `example` loaded
+      (one broken mod never aborts boot). Remove `mods/bad/` afterward.
+- [ ] A Lua app calling `app.set_text("<b>x</b>")` renders the markup literally in its window
+      (TextAppContent has rich text off — no mod-controlled markup is applied).
+
+## Regression
+
+- [ ] `dotnet test Siegebox.sln` → 520/520 green.
