@@ -131,12 +131,13 @@ namespace Siegebox.Scripting
             try
             {
                 var host = new LuaHost();
-                api.InstallInto(host, scope);
+                var loadVfsGate = api.InstallInto(host, scope);
                 foreach (var scriptName in mod.Manifest.Scripts)
                 {
                     host.RunChunk(ReadScript(mod.Directory, scriptName), $"{mod.Manifest.Id}/{scriptName}");
                 }
 
+                loadVfsGate.Close();
                 loadedModIds.Add(mod.Manifest.Id);
                 return new ModLoadResult(mod.Manifest.Id, true, string.Empty);
             }

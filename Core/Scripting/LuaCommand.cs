@@ -10,9 +10,11 @@ namespace Siegebox.Scripting
 {
     /// <summary>
     /// A shell command whose behavior is a Lua handler. The handler receives a ctx table
-    /// with args, write, write_err and read; read yields cooperatively so the process
+    /// with args, write, write_err, read and vfs; read yields cooperatively so the process
     /// sleeps instead of blocking a tick, and decodes UTF-8 statefully so a multibyte
-    /// character split across chunks survives intact. Every Lua step is contained:
+    /// character split across chunks survives intact. ctx.vfs (read/write/list) is mediated
+    /// under the calling process's own credentials — never root — so a scripted command has
+    /// exactly the file access the equivalent C# command has. Every Lua step is contained:
     /// script errors, budget exhaustion and unexpected failures all become exit code 1
     /// with one stderr line. Total output is capped at
     /// <see cref="LuaCommandProcess.OutputCapBytes"/>.
@@ -21,12 +23,14 @@ namespace Siegebox.Scripting
     {
         private readonly LuaHost host;
         private readonly DynValue handler;
+        private readonly VirtualFileSystem vfs;
 
-        internal LuaCommand(string name, LuaHost host, DynValue handler)
+        internal LuaCommand(string name, LuaHost host, DynValue handler, VirtualFileSystem vfs)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             this.host = host ?? throw new ArgumentNullException(nameof(host));
             this.handler = handler ?? throw new ArgumentNullException(nameof(handler));
+            this.vfs = vfs ?? throw new ArgumentNullException(nameof(vfs));
         }
 
         public string Name { get; }
@@ -43,7 +47,7 @@ namespace Siegebox.Scripting
                 throw new ArgumentNullException(nameof(arguments));
             }
 
-            return new LuaCommandProcess(context, Name, host, handler, arguments);
+            return new LuaCommandProcess(context, Name, host, handler, vfs, arguments);
         }
 
         private sealed class OutputCapExceededException : Exception
@@ -62,6 +66,7 @@ namespace Siegebox.Scripting
             private readonly string commandName;
             private readonly LuaHost host;
             private readonly DynValue handler;
+            private readonly VirtualFileSystem vfs;
             private readonly IReadOnlyList<string> arguments;
             private readonly Decoder stdinDecoder = Encoding.UTF8.GetDecoder();
             private readonly char[] decodedStdin = new char[Encoding.UTF8.GetMaxCharCount(ReadChunkBytes)];
@@ -70,6 +75,7 @@ namespace Siegebox.Scripting
             private DynValue resumeValue = DynValue.Nil;
             private bool awaitingInput;
             private bool draining;
+            private bool handlerExecuting;
             private long totalOutputBytes;
 
             public LuaCommandProcess(
@@ -77,12 +83,14 @@ namespace Siegebox.Scripting
                 string commandName,
                 LuaHost host,
                 DynValue handler,
+                VirtualFileSystem vfs,
                 IReadOnlyList<string> arguments)
             {
                 Context = context;
                 this.commandName = commandName;
                 this.host = host;
                 this.handler = handler;
+                this.vfs = vfs;
                 this.arguments = arguments;
             }
 
@@ -125,7 +133,17 @@ namespace Siegebox.Scripting
                     return ProcessState.Sleeping;
                 }
 
-                var step = call.Step(resumeValue);
+                LuaCall.StepResult step;
+                handlerExecuting = true;
+                try
+                {
+                    step = call.Step(resumeValue);
+                }
+                finally
+                {
+                    handlerExecuting = false;
+                }
+
                 resumeValue = DynValue.Nil;
                 switch (step.Kind)
                 {
@@ -221,6 +239,7 @@ namespace Siegebox.Scripting
                 contextTable.Set("write", DynValue.NewCallback((callbackContext, callbackArguments) => Write(Stdout, callbackArguments, "write")));
                 contextTable.Set("write_err", DynValue.NewCallback((callbackContext, callbackArguments) => Write(Stderr, callbackArguments, "write_err")));
                 contextTable.Set("read", DynValue.NewCallback((callbackContext, callbackArguments) => DynValue.NewYieldReq(ReadRequest)));
+                contextTable.Set("vfs", DynValue.NewTable(LuaVfsBridge.Build(script, vfs, Context.Credentials, EnsureHandlerExecuting)));
                 return DynValue.NewTable(contextTable);
             }
 
@@ -235,6 +254,14 @@ namespace Siegebox.Scripting
 
                 pendingWrites.Enqueue(target, text);
                 return DynValue.Nil;
+            }
+
+            private void EnsureHandlerExecuting()
+            {
+                if (!handlerExecuting)
+                {
+                    throw new ScriptRuntimeException("ctx.vfs is only available while the command runs");
+                }
             }
 
             private static void RequireReadRequest(DynValue yielded)

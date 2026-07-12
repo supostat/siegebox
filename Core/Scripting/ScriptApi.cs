@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Text;
 using MoonSharp.Interpreter;
 using Siegebox.App;
 using Siegebox.Events;
@@ -15,13 +13,15 @@ namespace Siegebox.Scripting
     /// into a mod's host from plain callbacks (AOT-safe, no CLR marshaling). Every callback
     /// turns invalid Lua arguments and registry rejections into pcall-able errors;
     /// registrations are recorded in the mod's scope only after the registry accepts them,
-    /// so a failed load rolls back exactly what was installed. Mod vfs access runs as uid 0
-    /// until launch identities are threaded through the stack.
+    /// so a failed load rolls back exactly what was installed. The global 'siegebox.vfs' is
+    /// the install identity (uid 0) and only lives while the mod loads — <see cref="InstallInto"/>
+    /// returns a <see cref="LuaVfsGate"/> the loader closes afterwards, so no command or app
+    /// handler can reach root vfs. A command's own vfs (on its ctx) is bound to the calling
+    /// process's credentials instead — see <see cref="LuaCommand"/>.
     /// </summary>
     public sealed class ScriptApi
     {
         private static readonly Credentials ModCredentials = new Credentials(0);
-        private static readonly PermissionMode ModFileMode = new PermissionMode(0b110_100_100);
 
         private readonly CommandRegistry commands;
         private readonly AppRegistry apps;
@@ -48,7 +48,7 @@ namespace Siegebox.Scripting
 
         public ModRegistrationScope CreateScope() => new ModRegistrationScope(commands, apps, fileTypes);
 
-        public void InstallInto(LuaHost host, ModRegistrationScope scope)
+        public LuaVfsGate InstallInto(LuaHost host, ModRegistrationScope scope)
         {
             if (host is null)
             {
@@ -61,14 +61,16 @@ namespace Siegebox.Scripting
             }
 
             var script = host.Script;
+            var loadVfsGate = new LuaVfsGate();
             var siegebox = new Table(script);
             siegebox.Set("register_command", RegistrationCallback("register_command", arguments => RegisterCommand(host, scope, arguments)));
             siegebox.Set("register_app", RegistrationCallback("register_app", arguments => RegisterApp(host, scope, arguments)));
             siegebox.Set("register_file_type", RegistrationCallback("register_file_type", arguments => RegisterFileType(scope, arguments)));
             siegebox.Set("subscribe", DynValue.NewCallback((context, arguments) => Subscribe(host, scope, arguments)));
             siegebox.Set("log", DynValue.NewCallback((context, arguments) => Log(arguments)));
-            siegebox.Set("vfs", DynValue.NewTable(BuildVfsTable(host)));
+            siegebox.Set("vfs", DynValue.NewTable(LuaVfsBridge.Build(script, vfs, ModCredentials, loadVfsGate.EnsureOpen)));
             script.Globals.Set("siegebox", DynValue.NewTable(siegebox));
+            return loadVfsGate;
         }
 
         private DynValue RegisterCommand(LuaHost host, ModRegistrationScope scope, CallbackArguments arguments)
@@ -76,7 +78,7 @@ namespace Siegebox.Scripting
             var name = arguments.AsType(0, "register_command", DataType.String, false).String;
             RequireIdentifier(name, "register_command", "name");
             var handler = arguments.AsType(1, "register_command", DataType.Function, false);
-            commands.Register(new LuaCommand(name, host, handler));
+            commands.Register(new LuaCommand(name, host, handler, vfs));
             scope.RecordCommand(name);
             return DynValue.Nil;
         }
@@ -149,108 +151,6 @@ namespace Siegebox.Scripting
         {
             log(arguments.AsType(0, "log", DataType.String, false).String);
             return DynValue.Nil;
-        }
-
-        private Table BuildVfsTable(LuaHost host)
-        {
-            var vfsTable = new Table(host.Script);
-            vfsTable.Set("read", DynValue.NewCallback((context, arguments) => VfsRead(arguments)));
-            vfsTable.Set("write", DynValue.NewCallback((context, arguments) => VfsWrite(arguments)));
-            vfsTable.Set("list", DynValue.NewCallback((context, arguments) => VfsList(host, arguments)));
-            return vfsTable;
-        }
-
-        private DynValue VfsRead(CallbackArguments arguments)
-        {
-            var path = arguments.AsType(0, "vfs.read", DataType.String, false).String;
-            return DynValue.NewString(GuardVfs(path, () =>
-            {
-                var stream = vfs.Open(path, OpenMode.Read, ModCredentials);
-                try
-                {
-                    return ReadAllText(stream);
-                }
-                finally
-                {
-                    stream.CloseRead();
-                }
-            }));
-        }
-
-        private DynValue VfsWrite(CallbackArguments arguments)
-        {
-            var path = arguments.AsType(0, "vfs.write", DataType.String, false).String;
-            var text = arguments.AsType(1, "vfs.write", DataType.String, false).String;
-            GuardVfs<object?>(path, () =>
-            {
-                var stream = vfs.OpenForWrite(path, WriteBehavior.Truncate, ModFileMode, ModCredentials);
-                try
-                {
-                    WriteAllText(stream, path, text);
-                    return null;
-                }
-                finally
-                {
-                    stream.CloseWrite();
-                }
-            });
-            return DynValue.Nil;
-        }
-
-        private DynValue VfsList(LuaHost host, CallbackArguments arguments)
-        {
-            var path = arguments.AsType(0, "vfs.list", DataType.String, false).String;
-            var names = GuardVfs(path, () => vfs.List(path, ModCredentials));
-            var array = new Table(host.Script);
-            for (var index = 0; index < names.Count; index++)
-            {
-                array.Set(index + 1, DynValue.NewString(names[index]));
-            }
-
-            return DynValue.NewTable(array);
-        }
-
-        private static string ReadAllText(IByteStream stream)
-        {
-            var collected = new MemoryStream();
-            var chunk = new byte[4096];
-            while (true)
-            {
-                var result = stream.Read(chunk, 0, chunk.Length);
-                if (result.Status != StreamStatus.Ok)
-                {
-                    return Encoding.UTF8.GetString(collected.ToArray());
-                }
-
-                collected.Write(chunk, 0, result.Count);
-            }
-        }
-
-        private static void WriteAllText(IByteStream stream, string path, string text)
-        {
-            var bytes = Encoding.UTF8.GetBytes(text);
-            if (bytes.Length == 0)
-            {
-                return;
-            }
-
-            var result = stream.Write(bytes, 0, bytes.Length);
-            if (result.Status != StreamStatus.Ok)
-            {
-                throw new ScriptRuntimeException($"vfs.write: '{path}' rejected the write");
-            }
-        }
-
-        private static T GuardVfs<T>(string path, Func<T> operation)
-        {
-            try
-            {
-                return operation();
-            }
-            catch (VfsException error)
-            {
-                throw new ScriptRuntimeException($"{error.Error}: {error.Path}");
-            }
         }
 
         private static bool IsKnownEventName(string eventName)
