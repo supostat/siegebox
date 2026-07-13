@@ -266,3 +266,77 @@ bit), and `passwd` writes the root-only `/etc/shadow` only through the setuid
 
 - [ ] All of the above is Core-covered by `dotnet test Siegebox.sln` → 616/616 green; this
       checklist is the manual/visual confirmation in a live terminal.
+
+# Persistence (Phase 8)
+
+Adds a versioned save/load: the VFS tree, the per-window layout, and each app's private state
+(terminal shell session, file-manager path) round-trip through one save file. Load reboots the
+whole kernel graph over the imported tree. The save/load durable logic is Core-tested; this
+checklist is the live confirmation of the Unity adapters and the reboot.
+
+## Setup
+
+- [ ] Open the project in the editor so it resolves the new UPM dependency
+      `com.unity.nuget.newtonsoft-json` (added to `Packages/manifest.json`) into
+      `packages-lock.json`, and imports the new/changed `.cs` files (generates their `.meta`).
+      A clean open shows no import errors.
+- [ ] No scene rewiring: `KernelBridge`'s serialized fields are unchanged (the graph is now
+      built in `Awake` and rebuilt per Boot, but the inspector references are the same).
+- [ ] Commit the `.meta` files the editor generates (`Core/Persistence/*.cs`,
+      `Core/Shell/SessionSnapshot.cs`, `Core/App/IPersistentApp.cs`, `Unity/SaveStore.cs`).
+
+## Save/Load buttons
+
+- [ ] On Play, the taskbar launcher row ends with two extra buttons after the app launchers:
+      `Save` and `Load`.
+- [ ] The launcher row shows each app once (no duplicates) — proving `ClearLaunchers` runs on
+      every Boot and the row is rebuilt from fresh descriptors.
+
+## VFS persistence
+
+- [ ] In a terminal `mkdir /home/player/saved ; echo persisted > /home/player/saved/note.txt`,
+      then click `Save`. A file `siegebox.save.json` appears under the OS persistent-data path
+      (`Application.persistentDataPath`).
+- [ ] Delete it live (`rm /home/player/saved/note.txt`), then click `Load`:
+      `cat /home/player/saved/note.txt` prints `persisted` again — the tree was restored.
+- [ ] `cat /etc/passwd` still shows `root` and `player` after a load, and `su root` (password
+      `root`) still works — `/etc/passwd` and `/etc/shadow` were persisted with the tree and
+      base seeding was skipped on the loaded boot (no double-seed error).
+
+## Window layout persistence
+
+- [ ] Open three windows (e.g. `terminal`, `files`, `about`), move/resize them to distinct
+      spots, minimize one and maximize another, then `Save` → `Load`. The three windows
+      reappear at their saved positions/sizes, with the minimized one hidden (dimmed taskbar
+      entry) and the maximized one filling the layer.
+- [ ] The window that was focused before `Save` is focused after `Load`; z-order matches.
+- [ ] A window whose app id is not registered after load (e.g. remove a disk mod, then Load a
+      save that had its window) is silently skipped — no exception, other windows still restore.
+
+## Terminal session persistence
+
+- [ ] In a terminal, `cd /etc ; export FOO=bar`, then `su root` (prompt ` # `). `Save` → `Load`.
+      The restored terminal opens at `/etc` as root (prompt ends ` # `), and `echo $FOO` prints
+      `bar` — working directory, identity and environment all survived.
+
+## File-manager path persistence
+
+- [ ] Open `files`, navigate into a subdirectory (path bar shows e.g. `/home/player/saved`),
+      `Save` → `Load`. The restored file manager shows that same directory (not `/`).
+
+## A bad save never destroys the live session
+
+- [ ] Corrupt `siegebox.save.json` (e.g. truncate it to `{`), do meaningful work in a terminal,
+      then click `Load`: the console logs one handled "No readable save"/"Load aborted" line and
+      the LIVE session is untouched (your terminal, cwd and windows are all still there) — because
+      the save is validated before any teardown.
+- [ ] Hand-edit the save's top-level `"Version"` to `999` and click `Load`: same outcome — a
+      single "Load aborted" log, live session intact (the version gate rejects it before import).
+
+## Regression
+
+- [ ] `dotnet test Siegebox.sln` → 641/641 green (Core persistence + import-hardening additions).
+- [ ] Windowing-layer grep check still passes: the window manager references no kernel/app/
+      persistence types beyond the `WindowSnapshot`/`WindowDisplayState` layout DTOs used by
+      `OpenAt`/`WindowsByZOrder`.
+- [ ] Play-mode console clean across a full Save/Load cycle: no errors or warnings.

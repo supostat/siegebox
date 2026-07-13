@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Siegebox.App;
 using Siegebox.Events;
+using Siegebox.Persistence;
 using Siegebox.Process;
 using Siegebox.Scripting;
 using Siegebox.Security;
@@ -16,10 +18,14 @@ using Debug = UnityEngine.Debug;
 namespace Siegebox.Unity
 {
     /// <summary>
-    /// The single MonoBehaviour and composition root: builds the kernel with its event bus,
-    /// installs base content as the first (native) mod, loads disk mods, builds the taskbar
-    /// from the app registry, ticks the scheduler inside a frame budget and pumps every open
-    /// window. A tick that overruns the budget skips exactly one frame to catch up.
+    /// The single MonoBehaviour and composition root. The scene-owned graph — desktop,
+    /// window manager, app host and taskbar — is built once in Awake and persists across
+    /// reboots. Every Boot rebuilds the kernel graph from scratch (events, vfs, scheduler,
+    /// registries, mods, launchers) so a load starts from a clean kernel over the imported
+    /// tree. Loading validates the save — version, tree, and window layout — BEFORE tearing
+    /// down the live session, so a rejected save leaves the current game intact. Per-window
+    /// rehydration runs after teardown; a window whose saved state is rejected there is
+    /// dropped and logged rather than aborting the whole load.
     /// </summary>
     public sealed class KernelBridge : MonoBehaviour
     {
@@ -31,35 +37,91 @@ namespace Siegebox.Unity
         [SerializeField] private int tickBudgetMilliseconds = 8;
 
         private readonly Stopwatch tickStopwatch = new Stopwatch();
+
+        private WindowManager windowManager;
+        private AppHost appHost;
+        private Taskbar taskbar;
+
         private VirtualFileSystem vfs;
         private AuthenticationService authentication;
         private Scheduler scheduler;
         private CommandRegistry commands;
         private AppRegistry appRegistry;
-        private WindowManager windowManager;
-        private AppHost appHost;
         private bool skipNextTick;
 
-        private void Start()
+        private void Awake()
+        {
+            var desktop = new Desktop(uiDocument.rootVisualElement, desktopTemplate);
+            windowManager = new WindowManager(desktop.WindowLayer, windowTemplate);
+            appHost = new AppHost(windowManager);
+            taskbar = new Taskbar(desktop.TaskbarRoot, windowManager);
+        }
+
+        private void Start() => Boot(null);
+
+        private void Boot(SaveGame save)
         {
             var events = new EventBus((kernelEvent, handlerError) => Debug.LogException(handlerError));
-            vfs = new VirtualFileSystem(events);
+            var loaded = save != null ? PrepareLoad(save, events) : null;
+
+            windowManager.CloseAll();
+
+            vfs = loaded?.Vfs ?? new VirtualFileSystem(events);
             authentication = new AuthenticationService(vfs);
             scheduler = new Scheduler(events: events);
             commands = new CommandRegistry();
             appRegistry = new AppRegistry();
             var fileTypes = new FileTypeRegistry();
 
-            var desktop = new Desktop(uiDocument.rootVisualElement, desktopTemplate);
-            windowManager = new WindowManager(desktop.WindowLayer, windowTemplate);
-            var taskbar = new Taskbar(desktop.TaskbarRoot, windowManager);
-            appHost = new AppHost(windowManager);
-
             var scriptApi = new ScriptApi(commands, appRegistry, fileTypes, vfs, events, message => Debug.Log(message));
             var modLoader = new ModLoader(scriptApi);
             modLoader.RegisterNative(
                 new ModManifest("base", "0.1.0", Array.Empty<string>(), 0, Array.Empty<string>()),
-                InstallBaseMod);
+                () => InstallBaseMod(loaded != null));
+            LoadDiskMods(modLoader);
+
+            RebuildLaunchers();
+
+            if (loaded == null)
+            {
+                LaunchApp("terminal");
+            }
+            else
+            {
+                RestoreWindows(loaded.Windows);
+            }
+        }
+
+        private static LoadedSave PrepareLoad(SaveGame save, EventBus events)
+        {
+            var loaded = SaveSerializer.Load(save, events);
+            ValidateWindowLayout(loaded.Windows);
+            return loaded;
+        }
+
+        private static void ValidateWindowLayout(IReadOnlyList<WindowSnapshot> windows)
+        {
+            foreach (var snapshot in windows)
+            {
+                if (snapshot is null)
+                {
+                    throw new SaveFormatException("A saved window entry is null.");
+                }
+
+                if (string.IsNullOrEmpty(snapshot.AppId))
+                {
+                    throw new SaveFormatException("A saved window has no app id.");
+                }
+
+                if (snapshot.AppState != null)
+                {
+                    _ = SaveStore.Deserialize<object>(snapshot.AppState);
+                }
+            }
+        }
+
+        private static void LoadDiskMods(ModLoader modLoader)
+        {
             foreach (var result in modLoader.LoadAll(ResolveModsRootPath()))
             {
                 if (!result.Loaded)
@@ -67,18 +129,70 @@ namespace Siegebox.Unity
                     Debug.LogError($"Mod '{result.ModId}' failed to load: {result.Error}");
                 }
             }
+        }
 
+        private void RebuildLaunchers()
+        {
+            taskbar.ClearLaunchers();
             foreach (var descriptor in appRegistry.Descriptors)
             {
-                taskbar.AddLauncher(descriptor.DisplayName, () => appHost.Launch(descriptor));
+                var launchDescriptor = descriptor;
+                taskbar.AddLauncher(launchDescriptor.DisplayName, () => appHost.Launch(launchDescriptor));
             }
 
-            LaunchApp("terminal");
+            taskbar.AddLauncher("Save", SaveGameNow);
+            taskbar.AddLauncher("Load", LoadGameNow);
+        }
+
+        private void RestoreWindows(IReadOnlyList<WindowSnapshot> windows)
+        {
+            var ordered = new List<WindowSnapshot>(windows);
+            ordered.Sort((left, right) => left.ZOrderIndex.CompareTo(right.ZOrderIndex));
+            foreach (var snapshot in ordered)
+            {
+                if (!appRegistry.TryGet(snapshot.AppId, out var descriptor))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    appHost.Rehydrate(descriptor, snapshot);
+                }
+                catch (Exception error)
+                {
+                    Debug.LogError($"Skipped a window while loading; its saved state was rejected. {error.Message}");
+                }
+            }
+        }
+
+        private void SaveGameNow() => SaveStore.Write(SaveSerializer.Capture(vfs.Export(), appHost.Capture()));
+
+        private void LoadGameNow()
+        {
+            if (!SaveStore.TryRead(out var save))
+            {
+                Debug.LogWarning("No readable save to load; the live session is unchanged.");
+                return;
+            }
+
+            try
+            {
+                Boot(save);
+            }
+            catch (Exception error) when (error is SaveFormatException || error is VfsException)
+            {
+                Debug.LogError($"Load rejected before teardown; the live session is unchanged. {error.Message}");
+            }
+            catch (Exception error)
+            {
+                Debug.LogError($"Load failed after teardown; the session may be incomplete. {error.Message}");
+            }
         }
 
         private void Update()
         {
-            if (windowManager is null)
+            if (scheduler is null)
             {
                 return;
             }
@@ -110,10 +224,14 @@ namespace Siegebox.Unity
             skipNextTick = tickStopwatch.ElapsedMilliseconds > tickBudgetMilliseconds;
         }
 
-        private void InstallBaseMod()
+        private void InstallBaseMod(bool loadingSave)
         {
-            UserSeed.Seed(vfs);
-            BinSeed.Seed(vfs);
+            if (!loadingSave)
+            {
+                UserSeed.Seed(vfs);
+                BinSeed.Seed(vfs);
+            }
+
             var bootBuiltins = new BuiltinRegistry();
             var bootJobs = new JobTable();
             BaseCommandSet.Install(commands, bootBuiltins, vfs, scheduler, bootJobs);

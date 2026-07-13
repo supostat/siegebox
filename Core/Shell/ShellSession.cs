@@ -53,5 +53,42 @@ namespace Siegebox.Shell
             => new ExecutionContext(WorkingDirectory, Credentials, Environment, fileDescriptors);
 
         public ShellSession Clone() => new ShellSession(this);
+
+        public SessionSnapshot ToSnapshot()
+        {
+            var groupIds = new List<int>(Credentials.Gids);
+            groupIds.Sort();
+            return new SessionSnapshot
+            {
+                Uid = Credentials.Uid,
+                Gids = groupIds,
+                WorkingDirectory = WorkingDirectory,
+                Environment = new Dictionary<string, string>(Environment),
+                LastExitCode = LastExitCode
+            };
+        }
+
+        public void ApplySnapshot(SessionSnapshot snapshot)
+        {
+            if (snapshot is null)
+            {
+                throw new ArgumentNullException(nameof(snapshot));
+            }
+
+            if (string.IsNullOrWhiteSpace(snapshot.WorkingDirectory))
+            {
+                throw new ArgumentException("Working directory must not be empty.", nameof(snapshot));
+            }
+
+            WorkingDirectory = snapshot.WorkingDirectory;
+            Credentials = new Credentials(snapshot.Uid, snapshot.Gids.ToArray());
+            Environment.Clear();
+            foreach (var entry in snapshot.Environment)
+            {
+                Environment[entry.Key] = entry.Value;
+            }
+
+            LastExitCode = snapshot.LastExitCode;
+        }
     }
 }

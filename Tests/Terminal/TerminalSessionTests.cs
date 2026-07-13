@@ -290,5 +290,35 @@ namespace Siegebox.Terminal.Tests
             var userHarness = new TerminalHarness(uid: 1000);
             Assert.That(userHarness.Session.PromptText, Is.EqualTo("/ $ "));
         }
+
+        [Test]
+        public void Captured_session_restores_the_working_directory_into_a_fresh_terminal()
+        {
+            var source = new TerminalHarness();
+            source.Vfs.CreateDirectory("/d", new Siegebox.Vfs.PermissionMode(0b111_101_101), new Siegebox.Vfs.Credentials(0));
+            source.RunLine("cd /d");
+
+            var snapshot = source.Session.CaptureSession();
+
+            var target = new TerminalHarness();
+            Assert.That(target.Session.PromptText, Is.EqualTo("/ # "));
+            target.Session.RestoreSession(snapshot);
+
+            Assert.That(target.Session.PromptText, Is.EqualTo("/d # "));
+        }
+
+        [Test]
+        public void Captured_session_restores_the_caller_identity_into_a_fresh_terminal()
+        {
+            var source = new TerminalHarness(uid: 1000);
+
+            var snapshot = source.Session.CaptureSession();
+
+            var target = new TerminalHarness();
+            Assert.That(target.Session.PromptText, Is.EqualTo("/ # "));
+            target.Session.RestoreSession(snapshot);
+
+            Assert.That(target.Session.PromptText, Is.EqualTo("/ $ "));
+        }
     }
 }

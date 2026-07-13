@@ -5,6 +5,8 @@ namespace Siegebox.Vfs
 {
     internal sealed class VfsNode
     {
+        private const int MaxImportDepth = 64;
+
         private VfsNode(
             NodeType type,
             string name,
@@ -79,10 +81,15 @@ namespace Siegebox.Vfs
         }
 
         public static VfsNode FromSnapshot(VfsNodeSnapshot snapshot)
-            => FromSnapshot(snapshot, new HashSet<VfsNodeSnapshot>());
+            => FromSnapshot(snapshot, new HashSet<VfsNodeSnapshot>(), 0);
 
-        private static VfsNode FromSnapshot(VfsNodeSnapshot snapshot, HashSet<VfsNodeSnapshot> visited)
+        private static VfsNode FromSnapshot(VfsNodeSnapshot snapshot, HashSet<VfsNodeSnapshot> visited, int depth)
         {
+            if (depth > MaxImportDepth)
+            {
+                throw new VfsException(VfsError.EINVAL, snapshot.Name);
+            }
+
             if (!visited.Add(snapshot))
             {
                 throw new VfsException(VfsError.EINVAL, snapshot.Name);
@@ -92,7 +99,7 @@ namespace Siegebox.Vfs
             return snapshot.Type switch
             {
                 NodeType.File => RebuildFile(snapshot, mode),
-                NodeType.Directory => RebuildDirectory(snapshot, mode, visited),
+                NodeType.Directory => RebuildDirectory(snapshot, mode, visited, depth),
                 NodeType.Symlink => NewSymlink(snapshot.Name, snapshot.OwnerUid, snapshot.GroupGid, mode, RequireTarget(snapshot)),
                 NodeType.Device => NewDevice(snapshot.Name, snapshot.OwnerUid, snapshot.GroupGid, mode, RequireDeviceKind(snapshot)),
                 _ => throw new VfsException(VfsError.EINVAL, snapshot.Name)
@@ -101,10 +108,12 @@ namespace Siegebox.Vfs
 
         private List<VfsNodeSnapshot> SnapshotChildren()
         {
-            var children = new List<VfsNodeSnapshot>(Children!.Count);
-            foreach (var child in Children.Values)
+            var orderedNames = new List<string>(Children!.Keys);
+            orderedNames.Sort(StringComparer.Ordinal);
+            var children = new List<VfsNodeSnapshot>(orderedNames.Count);
+            foreach (var name in orderedNames)
             {
-                children.Add(child.ToSnapshot());
+                children.Add(Children[name].ToSnapshot());
             }
 
             return children;
@@ -134,17 +143,27 @@ namespace Siegebox.Vfs
             return NewFile(snapshot.Name, snapshot.OwnerUid, snapshot.GroupGid, mode, new FileContent(initialBytes));
         }
 
-        private static VfsNode RebuildDirectory(VfsNodeSnapshot snapshot, PermissionMode mode, HashSet<VfsNodeSnapshot> visited)
+        private static VfsNode RebuildDirectory(VfsNodeSnapshot snapshot, PermissionMode mode, HashSet<VfsNodeSnapshot> visited, int depth)
         {
             var node = NewDirectory(snapshot.Name, snapshot.OwnerUid, snapshot.GroupGid, mode);
             if (snapshot.Children is not null)
             {
                 foreach (var childSnapshot in snapshot.Children)
                 {
+                    if (childSnapshot is null)
+                    {
+                        throw new VfsException(VfsError.EINVAL, string.Empty);
+                    }
+
                     ValidateChildName(childSnapshot);
-                    var child = FromSnapshot(childSnapshot, visited);
+                    if (node.Children!.ContainsKey(childSnapshot.Name))
+                    {
+                        throw new VfsException(VfsError.EINVAL, childSnapshot.Name);
+                    }
+
+                    var child = FromSnapshot(childSnapshot, visited, depth + 1);
                     child.Parent = node;
-                    node.Children!.Add(child.Name, child);
+                    node.Children.Add(child.Name, child);
                 }
             }
 
@@ -157,6 +176,14 @@ namespace Siegebox.Vfs
             if (string.IsNullOrEmpty(name) || name.Contains('/') || name == "." || name == "..")
             {
                 throw new VfsException(VfsError.EINVAL, name ?? string.Empty);
+            }
+
+            foreach (var character in name)
+            {
+                if (char.IsControl(character))
+                {
+                    throw new VfsException(VfsError.EINVAL, name);
+                }
             }
         }
     }

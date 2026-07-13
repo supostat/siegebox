@@ -44,6 +44,12 @@ namespace Siegebox.Unity
 
         public WindowState State { get; private set; } = WindowState.Normal;
 
+        /// <summary>
+        /// The window's normal-state frame: its live rect when Normal, otherwise the rect
+        /// captured before it was maximized or minimized. This is the geometry a save persists.
+        /// </summary>
+        public Rect Geometry => State == WindowState.Normal ? CurrentGeometry() : normalGeometry;
+
         public event Action<Window> CloseRequested;
 
         public event Action<Window> MinimizeRequested;
@@ -79,6 +85,11 @@ namespace Siegebox.Unity
             if (State == WindowState.Minimized)
             {
                 return;
+            }
+
+            if (State == WindowState.Normal)
+            {
+                normalGeometry = CurrentGeometry();
             }
 
             stateBeforeMinimize = State;

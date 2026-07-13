@@ -49,6 +49,60 @@ namespace Siegebox.Unity
                 throw new ArgumentNullException(nameof(content));
             }
 
+            var window = CreateWindow(content);
+            var origin = CascadeOrigin + CascadeStep * (openedCount % CascadeSlots);
+            openedCount++;
+            window.SetGeometry(new Rect(origin.x, origin.y, DefaultSize.x, DefaultSize.y));
+            Focus(window);
+            return window;
+        }
+
+        public Window OpenAt(IWindowContent content, Rect geometry, WindowState state, bool focused)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            var window = CreateWindow(content);
+            window.SetGeometry(geometry);
+            if (state == WindowState.Maximized)
+            {
+                window.ToggleMaximize();
+                WindowStateChanged?.Invoke(window);
+            }
+            else if (state == WindowState.Minimized)
+            {
+                window.Minimize();
+                WindowStateChanged?.Invoke(window);
+            }
+
+            if (focused && state != WindowState.Minimized)
+            {
+                Focus(window);
+            }
+
+            return window;
+        }
+
+        public IReadOnlyList<Window> WindowsByZOrder()
+        {
+            var ordered = new List<Window>(windows.Count);
+            for (var childIndex = 0; childIndex < windowLayer.childCount; childIndex++)
+            {
+                var child = windowLayer[childIndex];
+                var window = windows.Find(candidate => candidate.Root == child);
+                if (window != null)
+                {
+                    ordered.Add(window);
+                }
+            }
+
+            return ordered;
+        }
+
+        private Window CreateWindow(IWindowContent content)
+        {
             var window = new Window(windowTemplate, content);
             window.CloseRequested += Close;
             window.FocusRequested += Focus;
@@ -57,11 +111,7 @@ namespace Siegebox.Unity
 
             windows.Add(window);
             windowLayer.Add(window.Root);
-            var origin = CascadeOrigin + CascadeStep * (openedCount % CascadeSlots);
-            openedCount++;
-            window.SetGeometry(new Rect(origin.x, origin.y, DefaultSize.x, DefaultSize.y));
             WindowOpened?.Invoke(window);
-            Focus(window);
             return window;
         }
 

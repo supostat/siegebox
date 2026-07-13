@@ -11,6 +11,7 @@ namespace Siegebox.Unity
     /// </summary>
     public sealed class Taskbar
     {
+        private const string LauncherClassName = "taskbar-launcher";
         private const string EntryFocusedClassName = "taskbar-entry--focused";
         private const string EntryMinimizedClassName = "taskbar-entry--minimized";
 
@@ -51,8 +52,20 @@ namespace Siegebox.Unity
 
             var button = new Button(launch) { text = label };
             button.enableRichText = false;
-            button.AddToClassList("taskbar-launcher");
+            button.AddToClassList(LauncherClassName);
             launchersRoot.Add(button);
+        }
+
+        public void ClearLaunchers()
+        {
+            for (var childIndex = launchersRoot.childCount - 1; childIndex >= 0; childIndex--)
+            {
+                var child = launchersRoot[childIndex];
+                if (child.ClassListContains(LauncherClassName))
+                {
+                    child.RemoveFromHierarchy();
+                }
+            }
         }
 
         private void AddEntry(Window window)

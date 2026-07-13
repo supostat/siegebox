@@ -11,7 +11,7 @@ namespace Siegebox.Unity
     /// descends into subdirectories, walks up with "..", and surfaces VFS errors in a
     /// status line. Refreshes on navigation and on window refocus.
     /// </summary>
-    public sealed class FileManagerApp : IApp, IWindowContent
+    public sealed class FileManagerApp : IApp, IWindowContent, IPersistentApp
     {
         private readonly VirtualFileSystem vfs;
         private readonly Credentials credentials;
@@ -63,6 +63,10 @@ namespace Siegebox.Unity
         }
 
         public void OnClosed() => State = AppState.Closed;
+
+        public string CaptureState() => currentPath;
+
+        public void RestoreState(string state) => currentPath = string.IsNullOrEmpty(state) ? "/" : state;
 
         private void EnterDirectory(string name) => ShowDirectory(ChildPath(currentPath, name));
 

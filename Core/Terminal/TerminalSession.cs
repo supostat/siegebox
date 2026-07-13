@@ -63,6 +63,10 @@ namespace Siegebox.Terminal
 
         public string PromptText => session.WorkingDirectory + (session.Credentials.IsRoot ? " # " : " $ ");
 
+        public SessionSnapshot CaptureSession() => session.ToSnapshot();
+
+        public void RestoreSession(SessionSnapshot snapshot) => session.ApplySnapshot(snapshot);
+
         public bool SubmitLine(string line)
         {
             if (line is null)
