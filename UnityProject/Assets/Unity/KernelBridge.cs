@@ -41,6 +41,7 @@ namespace Siegebox.Unity
         private WindowManager windowManager;
         private AppHost appHost;
         private Taskbar taskbar;
+        private SystemPanel systemPanel;
 
         private VirtualFileSystem vfs;
         private AuthenticationService authentication;
@@ -55,6 +56,8 @@ namespace Siegebox.Unity
             windowManager = new WindowManager(desktop.WindowLayer, windowTemplate);
             appHost = new AppHost(windowManager);
             taskbar = new Taskbar(desktop.TaskbarRoot, windowManager);
+            var ownerIdentity = new WindowIdentity(UserSeed.PlayerName, UserSeed.PlayerUid, false);
+            systemPanel = new SystemPanel(desktop.SystemPanelRoot, ownerIdentity);
         }
 
         private void Start() => Boot(null);
@@ -248,13 +251,15 @@ namespace Siegebox.Unity
             BaseCommandSet.InstallBuiltins(builtins, vfs, scheduler, jobs);
             var shellSession = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
             var terminalSession = new TerminalSession(scheduler, vfs, commands, builtins, shellSession, jobs);
-            return new TerminalContent(terminalTemplate, terminalSession);
+            var identity = new WindowIdentity(UserSeed.PlayerName, shellSession.Credentials.Uid, shellSession.Credentials.IsRoot);
+            return new TerminalContent(terminalTemplate, terminalSession, identity);
         }
 
         private IApp CreateFileManagerApp()
         {
             var session = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
-            return new FileManagerApp(fileManagerTemplate, vfs, session.Credentials);
+            var identity = new WindowIdentity(UserSeed.PlayerName, session.Credentials.Uid, session.Credentials.IsRoot);
+            return new FileManagerApp(fileManagerTemplate, vfs, session.Credentials, identity);
         }
 
         private static IApp CreateAboutApp() => new StaticTextApp("about", "Siegebox — a desktop inside the game.");

@@ -350,3 +350,71 @@ checklist is the live confirmation of the Unity adapters and the reboot.
       persistence types beyond the `WindowSnapshot`/`WindowDisplayState` layout DTOs used by
       `OpenAt`/`WindowsByZOrder`.
 - [ ] Play-mode console clean across a full Save/Load cycle: no errors or warnings.
+
+# Operator Desktop — visual identity (Phase 9)
+
+> Presentation-only. Automated review confirms only compilation, tokens, and an engine-free
+> Core (`dotnet test` 654/654); the look itself is accepted here, by eye. A dedicated
+> `Tests/Desktop/README-manual.md` screenshot checklist is formalized in Phase 11.
+
+## Prerequisite — the monospace font (human step)
+
+- [ ] Import an OFL-licensed monospace `.ttf` (e.g. JetBrains Mono or DejaVu Sans Mono — NOT any
+      Kali/OffSec asset) under `Assets/Unity/UI/`, create a FontAsset, and set the
+      `-unity-font-definition` in `UI/UnityDefaultRuntimeTheme.tss` `:root` (currently a commented
+      placeholder). Until this is done the UI renders in Unity's default font; every check below
+      that mentions the mono font gates on this step.
+
+## Palette & elevation from tokens
+
+- [ ] Every surface colour comes from the `:root` tokens in `UnityDefaultRuntimeTheme.tss` — the
+      desktop reads as four distinct dark blue-gray elevation levels (void → window → panel →
+      raised) with NO shadows or gradients anywhere.
+- [ ] Exactly ONE teal accent is visible (focus border, terminal prompt, app-icon edge). No green
+      prompt, no red/blue in ordinary chrome (those are reserved for future game semantics).
+
+## Font inherited into titlebars
+
+- [ ] With the FontAsset assigned, ALL UI text is the single mono font — INCLUDING window
+      titlebars and the system panel (no default-font mismatch on titlebars).
+
+## Top system panel
+
+- [ ] A top panel shows: the Siegebox menu mark (left), network + volume indicator shapes, the
+      current user (`$ player (1000)`), a live `HH:mm` clock that ticks, and a power control.
+- [ ] The clock advances each minute while the app runs; clicking power quits the app (standalone
+      build).
+
+## Window chrome
+
+- [ ] Titlebars are rounded, carry an app-icon mark, and the min/max/close buttons are GRAPHIC
+      glyphs (no text characters). Maximize shows a distinct restore (double-square) glyph when the
+      window is maximized.
+- [ ] Close-button hover turns red (`--sb-danger`); other title-button hovers are neutral.
+
+## Identity indicator
+
+- [ ] Each window's chrome shows its launch identity (`$ player (1000)`; a root-launched window
+      would show `# root (0)`), mirroring the terminal prompt `#`/`$`. The `about` window (no
+      session) shows no identity label.
+
+## Dock from the registry
+
+- [ ] The taskbar/dock launchers are populated from `AppRegistry.Descriptors` — registering a new
+      app (e.g. via a disk mod) makes it appear on the dock automatically, with no hardcoded list.
+
+## Siege wallpaper & trademark check
+
+- [ ] The desktop backdrop is an original Siegebox "siege" motif (crenellated battlement + tower
+      silhouette in USS shapes) behind the windows; it never captures pointer events (dragging a
+      window over it works normally).
+- [ ] No Kali/OffSec dragon, logo, or theme anywhere: `grep -rniE "kali|offsec|dragon"
+      UnityProject/Assets/Unity` returns nothing.
+
+## Regression
+
+- [ ] `dotnet test Siegebox.sln` → 654/654 green (Core untouched — Phase 9 is presentation-only).
+- [ ] Windowing-layer grep check still passes: `WindowManager/` references no kernel/Core type
+      (`WindowIdentity` carries only primitives).
+- [ ] `KernelBridge` is still the sole `MonoBehaviour` and sole `scheduler.Tick()` caller after
+      the desktop/panel additions.

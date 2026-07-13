@@ -1,7 +1,94 @@
 .desktop {
     flex-grow: 1;
     flex-direction: column;
-    background-color: rgb(24, 26, 34);
+    background-color: var(--sb-bg-void);
+}
+
+.system-panel {
+    flex-direction: row;
+    align-items: center;
+    height: 28px;
+    flex-shrink: 0;
+    background-color: var(--sb-bg-panel);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--sb-border);
+}
+
+.panel-mark {
+    width: 20px;
+    height: 20px;
+    margin: 0 6px;
+    background-color: var(--sb-accent-teal);
+    border-width: 0;
+    border-radius: 3px;
+}
+
+.panel-spacer {
+    flex-grow: 1;
+}
+
+.panel-indicator {
+    width: 14px;
+    height: 14px;
+    margin: 0 4px;
+    background-color: var(--sb-fg-muted);
+    border-radius: 2px;
+}
+
+.panel-user {
+    color: var(--sb-fg);
+    margin: 0 6px;
+    -unity-font-style: bold;
+}
+
+.panel-clock {
+    color: var(--sb-fg);
+    margin: 0 6px;
+}
+
+.panel-power {
+    width: 20px;
+    height: 20px;
+    margin: 0 6px;
+    background-color: var(--sb-bg-raised);
+    border-width: 1px;
+    border-color: var(--sb-danger);
+    border-radius: 10px;
+}
+
+.wallpaper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.siege-battlement {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 120px;
+    background-color: var(--sb-bg-window);
+    border-top-width: 2px;
+    border-top-color: var(--sb-accent-teal);
+}
+
+.siege-tower {
+    position: absolute;
+    left: 50%;
+    bottom: 80px;
+    width: 90px;
+    height: 220px;
+    margin-left: -45px;
+    background-color: var(--sb-bg-window);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-left-color: var(--sb-accent-teal);
+    border-right-color: var(--sb-accent-teal);
+    border-top-color: var(--sb-accent-teal);
 }
 
 .window-layer {
@@ -14,9 +101,9 @@
     align-items: center;
     height: 32px;
     flex-shrink: 0;
-    background-color: rgb(28, 28, 36);
+    background-color: var(--sb-bg-panel);
     border-top-width: 1px;
-    border-top-color: rgb(60, 60, 70);
+    border-top-color: var(--sb-border);
 }
 
 .taskbar-launchers {
@@ -26,8 +113,8 @@
 }
 
 .taskbar-launcher {
-    color: rgb(200, 200, 210);
-    background-color: rgb(50, 50, 60);
+    color: var(--sb-fg);
+    background-color: var(--sb-bg-raised);
     border-width: 0;
     border-radius: 3px;
     margin: 4px 2px;
@@ -35,7 +122,7 @@
 }
 
 .taskbar-launcher:hover {
-    background-color: rgb(70, 70, 84);
+    background-color: var(--sb-border);
 }
 
 .taskbar-entries {
@@ -46,8 +133,8 @@
 
 .taskbar-entry {
     min-width: 110px;
-    color: rgb(200, 200, 210);
-    background-color: rgb(38, 38, 48);
+    color: var(--sb-fg);
+    background-color: var(--sb-bg-raised);
     border-width: 0;
     border-radius: 3px;
     margin: 4px 2px;
@@ -55,9 +142,9 @@
 }
 
 .taskbar-entry--focused {
-    background-color: rgb(60, 60, 76);
+    background-color: var(--sb-border);
 }
 
 .taskbar-entry--minimized {
-    color: rgb(130, 130, 140);
+    color: var(--sb-fg-muted);
 }

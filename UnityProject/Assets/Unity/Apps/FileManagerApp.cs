@@ -18,7 +18,7 @@ namespace Siegebox.Unity
         private readonly FileManagerView view;
         private string currentPath = "/";
 
-        public FileManagerApp(VisualTreeAsset template, VirtualFileSystem vfs, Credentials credentials)
+        public FileManagerApp(VisualTreeAsset template, VirtualFileSystem vfs, Credentials credentials, WindowIdentity identity)
         {
             if (template is null)
             {
@@ -27,6 +27,7 @@ namespace Siegebox.Unity
 
             this.vfs = vfs ?? throw new ArgumentNullException(nameof(vfs));
             this.credentials = credentials ?? throw new ArgumentNullException(nameof(credentials));
+            Identity = identity;
 
             Root = template.Instantiate();
             Root.style.flexGrow = 1;
@@ -37,6 +38,8 @@ namespace Siegebox.Unity
         }
 
         public string Title => "files";
+
+        public WindowIdentity Identity { get; }
 
         public VisualElement Root { get; }
 

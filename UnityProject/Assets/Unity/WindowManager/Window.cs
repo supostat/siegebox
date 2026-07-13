@@ -33,6 +33,7 @@ namespace Siegebox.Unity
             Root.style.position = Position.Absolute;
             chrome = new WindowChrome(Root);
             chrome.SetTitle(content.Title);
+            chrome.SetIdentity(content.Identity);
             Root.Q<VisualElement>("window-content").Add(content.Root);
             WireChrome();
             Root.RegisterCallback<PointerDownEvent>(_ => FocusRequested?.Invoke(this), TrickleDown.TrickleDown);

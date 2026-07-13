@@ -1,26 +1,38 @@
 .window {
     flex-grow: 1;
     flex-direction: column;
-    background-color: rgb(14, 14, 18);
-    border-color: rgb(60, 60, 70);
+    background-color: var(--sb-bg-window);
+    border-color: var(--sb-border);
     border-width: 1px;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 .window--focused {
-    border-color: rgb(90, 90, 110);
+    border-color: var(--sb-border-focused);
 }
 
 .window--focused .title-bar {
-    background-color: rgb(40, 40, 52);
+    background-color: var(--sb-bg-raised);
 }
 
 .title-bar {
     flex-direction: row;
     align-items: center;
-    background-color: rgb(28, 28, 36);
+    background-color: var(--sb-bg-panel);
     padding: 2px 6px;
     flex-shrink: 0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.app-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+    background-color: var(--sb-bg-void);
+    border-width: 2px;
+    border-color: var(--sb-accent-teal);
+    border-radius: 3px;
 }
 
 .drag-region {
@@ -31,8 +43,14 @@
 }
 
 .window-title {
-    color: rgb(180, 180, 190);
+    color: var(--sb-fg);
     -unity-font-style: bold;
+}
+
+.identity-indicator {
+    color: var(--sb-fg-muted);
+    margin-left: 8px;
+    margin-right: 4px;
 }
 
 .title-buttons {
@@ -43,20 +61,84 @@
 
 .title-button {
     width: 22px;
-    height: 20px;
+    height: 18px;
     margin-left: 4px;
-    color: rgb(200, 200, 210);
-    background-color: rgb(50, 50, 60);
+    align-items: center;
+    justify-content: center;
+    background-color: var(--sb-bg-raised);
     border-width: 0;
     border-radius: 3px;
 }
 
 .title-button:hover {
-    background-color: rgb(70, 70, 84);
+    background-color: var(--sb-border);
 }
 
 .close-button:hover {
-    background-color: rgb(160, 60, 60);
+    background-color: var(--sb-danger);
+}
+
+.glyph {
+    background-color: var(--sb-fg);
+}
+
+.glyph-minimize {
+    width: 8px;
+    height: 2px;
+}
+
+.glyph-maximize {
+    width: 9px;
+    height: 8px;
+    background-color: initial;
+    border-width: 1px;
+    border-color: var(--sb-fg);
+}
+
+.glyph-maximize-overlay {
+    display: none;
+}
+
+.title-button--restore .glyph-maximize {
+    width: 7px;
+    height: 6px;
+    margin-top: 3px;
+    margin-left: -2px;
+}
+
+.title-button--restore .glyph-maximize-overlay {
+    display: flex;
+    position: absolute;
+    top: -4px;
+    left: 3px;
+    width: 7px;
+    height: 6px;
+    background-color: initial;
+    border-width: 1px;
+    border-color: var(--sb-fg);
+}
+
+.glyph-close {
+    width: 10px;
+    height: 10px;
+    background-color: initial;
+}
+
+.glyph-close-bar {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 10px;
+    height: 2px;
+    background-color: var(--sb-fg);
+}
+
+.glyph-close-bar--forward {
+    rotate: 45deg;
+}
+
+.glyph-close-bar--back {
+    rotate: -45deg;
 }
 
 .window-content {
@@ -87,14 +169,4 @@
     bottom: 0;
     width: 12px;
     height: 12px;
-}
-
-.placeholder-content {
-    flex-grow: 1;
-    align-items: center;
-    justify-content: center;
-}
-
-.placeholder-message {
-    color: rgb(180, 180, 190);
 }

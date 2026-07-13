@@ -26,10 +26,13 @@ namespace Siegebox.Unity
             parent.Add(root);
             WindowLayer = root.Q<VisualElement>("window-layer");
             TaskbarRoot = root.Q<VisualElement>("taskbar");
+            SystemPanelRoot = root.Q<VisualElement>("system-panel");
         }
 
         public VisualElement WindowLayer { get; }
 
         public VisualElement TaskbarRoot { get; }
+
+        public VisualElement SystemPanelRoot { get; }
     }
 }

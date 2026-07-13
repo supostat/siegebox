@@ -1,19 +1,19 @@
 .file-manager {
     flex-grow: 1;
     flex-direction: column;
-    background-color: rgb(18, 18, 24);
+    background-color: var(--sb-bg-window);
 }
 
 .path-row {
     flex-direction: row;
     align-items: center;
-    background-color: rgb(28, 28, 36);
+    background-color: var(--sb-bg-panel);
     flex-shrink: 0;
 }
 
 .up-button {
-    color: rgb(200, 200, 210);
-    background-color: rgb(50, 50, 60);
+    color: var(--sb-fg);
+    background-color: var(--sb-bg-raised);
     border-width: 0;
     border-radius: 3px;
     margin: 4px 2px;
@@ -21,12 +21,12 @@
 }
 
 .up-button:hover {
-    background-color: rgb(70, 70, 84);
+    background-color: var(--sb-border);
 }
 
 .path-label {
     white-space: pre;
-    color: rgb(214, 214, 214);
+    color: var(--sb-fg);
 }
 
 .entry-scroll {
@@ -39,30 +39,31 @@
 
 .entry-row {
     flex-direction: row;
-    color: rgb(214, 214, 214);
-    background-color: rgba(0, 0, 0, 0);
+    color: var(--sb-fg);
+    background-color: initial;
     border-width: 0;
     padding: 2px 8px;
     -unity-text-align: middle-left;
 }
 
 .entry-row--directory {
-    color: rgb(120, 180, 240);
+    color: var(--sb-fg);
+    -unity-font-style: bold;
 }
 
 .entry-row--directory:hover {
-    background-color: rgb(38, 38, 48);
+    background-color: var(--sb-bg-raised);
 }
 
 .entry-size {
-    color: rgb(130, 130, 140);
+    color: var(--sb-fg-disabled);
     margin-left: 8px;
 }
 
 .status-label {
     flex-shrink: 0;
-    color: rgb(220, 120, 120);
-    background-color: rgb(28, 28, 36);
+    color: var(--sb-danger);
+    background-color: var(--sb-bg-panel);
     padding: 2px 6px;
     display: none;
 }

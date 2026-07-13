@@ -1,6 +1,19 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns="UnityEngine.UIElements">
     <Style src="Desktop.uss" />
     <ui:VisualElement name="desktop" class="desktop">
+        <ui:VisualElement name="system-panel" class="system-panel">
+            <ui:Button name="menu-button" class="panel-mark" />
+            <ui:VisualElement class="panel-spacer" />
+            <ui:VisualElement name="panel-network" class="panel-indicator" />
+            <ui:VisualElement name="panel-volume" class="panel-indicator" />
+            <ui:Label name="panel-user" class="panel-user" />
+            <ui:Label name="panel-clock" class="panel-clock" />
+            <ui:Button name="power-button" class="panel-power" />
+        </ui:VisualElement>
+        <ui:VisualElement name="wallpaper" class="wallpaper" picking-mode="Ignore">
+            <ui:VisualElement class="siege-battlement" picking-mode="Ignore" />
+            <ui:VisualElement class="siege-tower" picking-mode="Ignore" />
+        </ui:VisualElement>
         <ui:VisualElement name="window-layer" class="window-layer" />
         <ui:VisualElement name="taskbar" class="taskbar">
             <ui:VisualElement name="taskbar-launchers" class="taskbar-launchers" />

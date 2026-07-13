@@ -2,13 +2,26 @@
     <Style src="Window.uss" />
     <ui:VisualElement name="window" class="window">
         <ui:VisualElement name="title-bar" class="title-bar">
+            <ui:VisualElement name="app-icon" class="app-icon" />
             <ui:VisualElement name="drag-region" class="drag-region">
                 <ui:Label name="window-title" class="window-title" />
             </ui:VisualElement>
+            <ui:Label name="identity-indicator" class="identity-indicator" />
             <ui:VisualElement name="title-buttons" class="title-buttons">
-                <ui:Button name="minimize-button" text="–" class="title-button" />
-                <ui:Button name="maximize-button" text="▢" class="title-button" />
-                <ui:Button name="close-button" text="✕" class="title-button close-button" />
+                <ui:Button name="minimize-button" class="title-button">
+                    <ui:VisualElement class="glyph glyph-minimize" />
+                </ui:Button>
+                <ui:Button name="maximize-button" class="title-button">
+                    <ui:VisualElement class="glyph glyph-maximize">
+                        <ui:VisualElement class="glyph-maximize-overlay" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="close-button" class="title-button close-button">
+                    <ui:VisualElement class="glyph glyph-close">
+                        <ui:VisualElement class="glyph-close-bar glyph-close-bar--forward" />
+                        <ui:VisualElement class="glyph-close-bar glyph-close-bar--back" />
+                    </ui:VisualElement>
+                </ui:Button>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="window-content" class="window-content" />

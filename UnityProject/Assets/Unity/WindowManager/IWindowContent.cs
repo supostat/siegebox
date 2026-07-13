@@ -11,6 +11,8 @@ namespace Siegebox.Unity
     {
         string Title { get; }
 
+        WindowIdentity Identity { get; }
+
         VisualElement Root { get; }
 
         /// <summary>

@@ -1,1 +1,27 @@
 @import url("unity-theme://default");
+
+:root {
+    /* Elevation levels — dark blue-gray, depth from surface levels only, no shadows/gradients. */
+    --sb-bg-void: rgb(18, 20, 28);
+    --sb-bg-window: rgb(24, 27, 36);
+    --sb-bg-panel: rgb(32, 36, 48);
+    --sb-bg-raised: rgb(44, 49, 64);
+
+    --sb-border: rgb(60, 66, 82);
+    --sb-border-focused: rgb(96, 168, 168);
+
+    --sb-fg: rgb(214, 216, 224);
+    --sb-fg-muted: rgb(150, 156, 170);
+    --sb-fg-disabled: rgb(110, 116, 130);
+
+    --sb-accent-teal: rgb(72, 196, 196);
+    --sb-danger: rgb(176, 72, 72);
+
+    /* Reserved — declared for future use, never consumed in a var() this phase. */
+    --sb-accent-red: rgb(198, 84, 84);
+    --sb-accent-blue: rgb(84, 132, 214);
+    --sb-accent-amber: rgb(212, 160, 72);
+
+    /* -unity-font-definition: url("project://database/Assets/Unity/UI/<MonoFont> SDF.asset"); assigned in-editor once the OFL mono FontAsset exists */
+    color: var(--sb-fg);
+}

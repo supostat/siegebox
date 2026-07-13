@@ -1,17 +1,17 @@
 .terminal {
     flex-grow: 1;
     flex-direction: column;
-    background-color: rgb(14, 14, 18);
+    background-color: var(--sb-bg-void);
 }
 
 .output-scroll {
     flex-grow: 1;
-    background-color: rgb(14, 14, 18);
+    background-color: var(--sb-bg-void);
 }
 
 .output-text {
     white-space: pre;
-    color: rgb(214, 214, 214);
+    color: var(--sb-fg);
     padding: 4px 6px;
     flex-shrink: 0;
 }
@@ -19,14 +19,14 @@
 .input-row {
     flex-direction: row;
     align-items: center;
-    background-color: rgb(20, 20, 26);
+    background-color: var(--sb-bg-window);
     padding: 2px 4px;
     flex-shrink: 0;
 }
 
 .prompt {
     white-space: pre;
-    color: rgb(120, 200, 120);
+    color: var(--sb-accent-teal);
     margin-right: 2px;
 }
 
@@ -35,7 +35,7 @@
 }
 
 .command-input > .unity-base-text-field__input {
-    background-color: rgb(20, 20, 26);
+    background-color: var(--sb-bg-window);
     border-width: 0;
-    color: rgb(214, 214, 214);
+    color: var(--sb-fg);
 }

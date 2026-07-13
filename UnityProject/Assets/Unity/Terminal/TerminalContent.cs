@@ -18,7 +18,7 @@ namespace Siegebox.Unity
         private readonly TerminalController controller;
         private readonly TerminalSession session;
 
-        public TerminalContent(VisualTreeAsset terminalTemplate, TerminalSession session)
+        public TerminalContent(VisualTreeAsset terminalTemplate, TerminalSession session, WindowIdentity identity)
         {
             if (terminalTemplate is null)
             {
@@ -31,6 +31,7 @@ namespace Siegebox.Unity
             }
 
             this.session = session;
+            Identity = identity;
             Root = terminalTemplate.Instantiate();
             Root.style.flexGrow = 1;
             view = new TerminalView(Root);
@@ -38,6 +39,8 @@ namespace Siegebox.Unity
         }
 
         public string Title => "terminal";
+
+        public WindowIdentity Identity { get; }
 
         public VisualElement Root { get; }
 

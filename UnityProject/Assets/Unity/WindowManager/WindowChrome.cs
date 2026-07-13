@@ -13,8 +13,11 @@ namespace Siegebox.Unity
     {
         private const string FocusedClassName = "window--focused";
 
+        private const string RestoreClassName = "title-button--restore";
+
         private readonly VisualElement frame;
         private readonly Label windowTitle;
+        private readonly Label identityIndicator;
         private readonly Button maximizeButton;
 
         public WindowChrome(VisualElement root)
@@ -27,6 +30,8 @@ namespace Siegebox.Unity
             frame = root.Q<VisualElement>("window");
             windowTitle = root.Q<Label>("window-title");
             windowTitle.enableRichText = false;
+            identityIndicator = root.Q<Label>("identity-indicator");
+            identityIndicator.enableRichText = false;
             var minimizeButton = root.Q<Button>("minimize-button");
             maximizeButton = root.Q<Button>("maximize-button");
             var closeButton = root.Q<Button>("close-button");
@@ -56,8 +61,21 @@ namespace Siegebox.Unity
 
         public void SetTitle(string title) => windowTitle.text = title;
 
+        public void SetIdentity(WindowIdentity identity)
+        {
+            if (identity.HasUser)
+            {
+                identityIndicator.text = identity.ChromeLabel;
+                identityIndicator.style.display = DisplayStyle.Flex;
+                return;
+            }
+
+            identityIndicator.text = string.Empty;
+            identityIndicator.style.display = DisplayStyle.None;
+        }
+
         public void SetFocused(bool focused) => frame.EnableInClassList(FocusedClassName, focused);
 
-        public void SetMaximized(bool maximized) => maximizeButton.text = maximized ? "❐" : "▢";
+        public void SetMaximized(bool maximized) => maximizeButton.EnableInClassList(RestoreClassName, maximized);
     }
 }

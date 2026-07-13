@@ -34,6 +34,8 @@ namespace Siegebox.Unity
 
         public string Title => surface.Title;
 
+        public WindowIdentity Identity => WindowIdentity.None;
+
         public VisualElement Root { get; }
 
         public void Pump()
