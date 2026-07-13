@@ -62,33 +62,65 @@
     top: 0;
     right: 0;
     bottom: 0;
+    align-items: center;
+    justify-content: flex-end;
 }
 
-.siege-battlement {
+/* An original siege-fortress silhouette: a curtain wall with three crenellated
+   towers, drawn from solid shapes only. Depth comes from elevation levels
+   (rampart on panel, towers on raised) — no teal, no gradients, no shadows. */
+.fortress {
+    width: 560px;
+    height: 300px;
+    margin-bottom: 56px;
+}
+
+.rampart {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 40px;
+    right: 40px;
     bottom: 0;
-    height: 120px;
-    background-color: var(--sb-bg-window);
-    border-top-width: 2px;
-    border-top-color: var(--sb-accent-teal);
+    height: 78px;
+    background-color: var(--sb-bg-panel);
 }
 
-.siege-tower {
+.tower {
     position: absolute;
-    left: 50%;
-    bottom: 80px;
-    width: 90px;
-    height: 220px;
-    margin-left: -45px;
-    background-color: var(--sb-bg-window);
-    border-left-width: 2px;
-    border-right-width: 2px;
-    border-top-width: 2px;
-    border-left-color: var(--sb-accent-teal);
-    border-right-color: var(--sb-accent-teal);
-    border-top-color: var(--sb-accent-teal);
+    bottom: 54px;
+    width: 80px;
+    flex-direction: column;
+}
+
+.tower--left {
+    left: 88px;
+    height: 150px;
+}
+
+.tower--right {
+    right: 88px;
+    height: 150px;
+}
+
+.tower--keep {
+    left: 240px;
+    height: 224px;
+}
+
+.crenels {
+    flex-direction: row;
+    justify-content: space-between;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.merlon {
+    width: 20px;
+    background-color: var(--sb-bg-raised);
+}
+
+.tower-body {
+    flex-grow: 1;
+    background-color: var(--sb-bg-raised);
 }
 
 .window-layer {

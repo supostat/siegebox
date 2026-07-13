@@ -11,8 +11,33 @@
             <ui:Button name="power-button" class="panel-power" />
         </ui:VisualElement>
         <ui:VisualElement name="wallpaper" class="wallpaper" picking-mode="Ignore">
-            <ui:VisualElement class="siege-battlement" picking-mode="Ignore" />
-            <ui:VisualElement class="siege-tower" picking-mode="Ignore" />
+            <ui:VisualElement class="fortress" picking-mode="Ignore">
+                <ui:VisualElement class="rampart" picking-mode="Ignore" />
+                <ui:VisualElement class="tower tower--left" picking-mode="Ignore">
+                    <ui:VisualElement class="crenels" picking-mode="Ignore">
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="tower-body" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="tower tower--keep" picking-mode="Ignore">
+                    <ui:VisualElement class="crenels" picking-mode="Ignore">
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="tower-body" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="tower tower--right" picking-mode="Ignore">
+                    <ui:VisualElement class="crenels" picking-mode="Ignore">
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                        <ui:VisualElement class="merlon" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="tower-body" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="window-layer" class="window-layer" />
         <ui:VisualElement name="taskbar" class="taskbar">
