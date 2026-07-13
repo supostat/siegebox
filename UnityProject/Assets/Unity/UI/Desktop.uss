@@ -71,8 +71,8 @@
    (rampart on panel, towers on raised) — no teal, no gradients, no shadows. */
 .fortress {
     width: 560px;
-    height: 300px;
-    margin-bottom: 56px;
+    height: 240px;
+    margin-bottom: 44px;
 }
 
 .rampart {
@@ -80,30 +80,30 @@
     left: 40px;
     right: 40px;
     bottom: 0;
-    height: 78px;
+    height: 70px;
     background-color: var(--sb-bg-panel);
 }
 
 .tower {
     position: absolute;
-    bottom: 54px;
+    bottom: 46px;
     width: 80px;
     flex-direction: column;
 }
 
 .tower--left {
     left: 88px;
-    height: 150px;
+    height: 126px;
 }
 
 .tower--right {
     right: 88px;
-    height: 150px;
+    height: 126px;
 }
 
 .tower--keep {
     left: 240px;
-    height: 224px;
+    height: 182px;
 }
 
 .crenels {
