@@ -60,11 +60,15 @@
 }
 
 .title-button {
-    width: 22px;
-    height: 18px;
-    margin-left: 4px;
+    width: 24px;
+    height: 20px;
+    min-width: 24px;
+    min-height: 20px;
+    margin: 0 0 0 4px;
+    padding: 0;
     align-items: center;
     justify-content: center;
+    background-image: none;
     background-color: var(--sb-bg-raised);
     border-width: 0;
     border-radius: 3px;
@@ -78,21 +82,23 @@
     background-color: var(--sb-danger);
 }
 
-.glyph {
+/* Glyphs are drawn from solid bars; the maximize outline is a border on an
+   otherwise-transparent element (a VisualElement's default background is
+   transparent, so no fill is set). */
+.glyph-minimize {
+    width: 10px;
+    height: 2px;
     background-color: var(--sb-fg);
 }
 
-.glyph-minimize {
-    width: 8px;
-    height: 2px;
-}
-
 .glyph-maximize {
-    width: 9px;
-    height: 8px;
-    background-color: initial;
+    width: 10px;
+    height: 9px;
     border-width: 1px;
-    border-color: var(--sb-fg);
+    border-left-color: var(--sb-fg);
+    border-right-color: var(--sb-fg);
+    border-top-color: var(--sb-fg);
+    border-bottom-color: var(--sb-fg);
 }
 
 .glyph-maximize-overlay {
@@ -100,8 +106,8 @@
 }
 
 .title-button--restore .glyph-maximize {
-    width: 7px;
-    height: 6px;
+    width: 8px;
+    height: 7px;
     margin-top: 3px;
     margin-left: -2px;
 }
@@ -109,25 +115,26 @@
 .title-button--restore .glyph-maximize-overlay {
     display: flex;
     position: absolute;
-    top: -4px;
+    top: -3px;
     left: 3px;
-    width: 7px;
-    height: 6px;
-    background-color: initial;
+    width: 8px;
+    height: 7px;
     border-width: 1px;
-    border-color: var(--sb-fg);
+    border-left-color: var(--sb-fg);
+    border-right-color: var(--sb-fg);
+    border-top-color: var(--sb-fg);
+    border-bottom-color: var(--sb-fg);
 }
 
 .glyph-close {
-    width: 10px;
-    height: 10px;
-    background-color: initial;
+    width: 12px;
+    height: 12px;
 }
 
 .glyph-close-bar {
     position: absolute;
-    top: 4px;
-    left: 0;
+    top: 5px;
+    left: 1px;
     width: 10px;
     height: 2px;
     background-color: var(--sb-fg);
