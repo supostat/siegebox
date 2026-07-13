@@ -57,6 +57,15 @@ namespace Siegebox.Terminal
 
         public bool IsClosed => closed;
 
+        public bool EchoSuppressed { get; private set; }
+
+        /// <summary>
+        /// True when the most recent <see cref="SubmitLine"/> was consumed as a suppressed secret
+        /// line (a busy submit answering a prompt that carried the secret marker), false for every
+        /// idle or normal submit. The history gate reads this to keep passwords out of recall.
+        /// </summary>
+        public bool LastSubmitWasSecret { get; private set; }
+
         public string ScrollbackText => scrollback.Text;
 
         public int ScrollbackVersion => scrollback.Version;
@@ -67,6 +76,15 @@ namespace Siegebox.Terminal
 
         public void RestoreSession(SessionSnapshot snapshot) => session.ApplySnapshot(snapshot);
 
+        /// <summary>
+        /// Drains pending foreground output BEFORE the echo/history decision so
+        /// <see cref="EchoSuppressed"/> reflects every byte the process wrote — including a prompt
+        /// marker whose Pump has not run yet, since a line can be submitted async to the tick/pump
+        /// cycle. The reader always emits its prompt+marker before it can read the line, so draining
+        /// first closes the realistic window. Residual known limitation: a line submitted before the
+        /// reader has even emitted its prompt (an atomic pre-prompt multi-submit, keyboard-unreachable)
+        /// would still echo.
+        /// </summary>
         public bool SubmitLine(string line)
         {
             if (line is null)
@@ -74,11 +92,13 @@ namespace Siegebox.Terminal
                 throw new ArgumentNullException(nameof(line));
             }
 
+            LastSubmitWasSecret = false;
             if (closed)
             {
                 return false;
             }
 
+            AppendOutput();
             if (IsBusy)
             {
                 return QueueInput(line);
@@ -97,10 +117,11 @@ namespace Siegebox.Terminal
             }
 
             FlushPendingInput();
-            AppendDrained(outputDrain);
-            AppendDrained(errorDrain);
+            AppendOutput();
+            AppendError();
             if (!IsBusy)
             {
+                EchoSuppressed = false;
                 NotifyFinishedJobs();
             }
         }
@@ -150,7 +171,17 @@ namespace Siegebox.Terminal
                 return false;
             }
 
-            scrollback.Append(line + "\n");
+            if (EchoSuppressed)
+            {
+                scrollback.Append("\n");
+                EchoSuppressed = false;
+                LastSubmitWasSecret = true;
+            }
+            else
+            {
+                scrollback.Append(line + "\n");
+            }
+
             pendingInput.Enqueue(bytes);
             pendingByteCount += bytes.Length;
             FlushPendingInput();
@@ -178,9 +209,25 @@ namespace Siegebox.Terminal
             }
         }
 
-        private void AppendDrained(StreamTextDrain drain)
+        private void AppendOutput()
         {
-            var text = drain.Drain();
+            var text = outputDrain.Drain();
+            if (text.IndexOf(SecretPromptMarker.Sequence, StringComparison.Ordinal) >= 0)
+            {
+                EchoSuppressed = true;
+            }
+
+            AppendToScrollback(text);
+        }
+
+        private void AppendError()
+        {
+            AppendToScrollback(errorDrain.Drain());
+        }
+
+        private void AppendToScrollback(string text)
+        {
+            text = text.Replace(SecretPromptMarker.Sequence, "");
             if (text.Length > 0)
             {
                 scrollback.Append(text);

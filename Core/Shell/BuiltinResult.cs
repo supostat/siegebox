@@ -4,13 +4,14 @@ namespace Siegebox.Shell
 {
     public sealed class BuiltinResult
     {
-        private BuiltinResult(int exitCode, string output, string error, int waitForPid, string? readLinePrompt)
+        private BuiltinResult(int exitCode, string output, string error, int waitForPid, string? readLinePrompt, bool secret)
         {
             ExitCode = exitCode;
             Output = output;
             Error = error;
             WaitForPid = waitForPid;
             ReadLinePrompt = readLinePrompt;
+            Secret = secret;
         }
 
         public int ExitCode { get; }
@@ -28,6 +29,9 @@ namespace Siegebox.Shell
         /// </summary>
         public string? ReadLinePrompt { get; }
 
+        /// <summary>When true, the awaited line is a secret and the terminal suppresses its echo.</summary>
+        public bool Secret { get; }
+
         public static BuiltinResult Completed(int exitCode, string output = "", string error = "")
         {
             if (output is null)
@@ -40,7 +44,7 @@ namespace Siegebox.Shell
                 throw new ArgumentNullException(nameof(error));
             }
 
-            return new BuiltinResult(exitCode, output, error, 0, null);
+            return new BuiltinResult(exitCode, output, error, 0, null, false);
         }
 
         public static BuiltinResult WaitFor(int pid)
@@ -50,17 +54,17 @@ namespace Siegebox.Shell
                 throw new ArgumentOutOfRangeException(nameof(pid), pid, "Pid must be positive.");
             }
 
-            return new BuiltinResult(0, "", "", pid, null);
+            return new BuiltinResult(0, "", "", pid, null, false);
         }
 
-        public static BuiltinResult ReadLine(string prompt)
+        public static BuiltinResult ReadLine(string prompt, bool secret = false)
         {
             if (prompt is null)
             {
                 throw new ArgumentNullException(nameof(prompt));
             }
 
-            return new BuiltinResult(0, "", "", 0, prompt);
+            return new BuiltinResult(0, "", "", 0, prompt, secret);
         }
     }
 }

@@ -20,6 +20,7 @@ namespace Siegebox.Shell
         private bool executed;
         private string? deliveredLine;
         private string? promptToWrite;
+        private bool promptSecret;
         private bool promptEnqueued;
         private bool awaitingLine;
 
@@ -60,6 +61,7 @@ namespace Siegebox.Shell
             if (result.ReadLinePrompt != null)
             {
                 promptToWrite = result.ReadLinePrompt;
+                promptSecret = result.Secret;
                 return null;
             }
 
@@ -79,7 +81,7 @@ namespace Siegebox.Shell
 
             if (!promptEnqueued)
             {
-                pendingWrites.Enqueue(Stdout, promptToWrite);
+                pendingWrites.Enqueue(Stdout, (promptSecret ? SecretPromptMarker.Sequence : "") + promptToWrite);
                 promptEnqueued = true;
             }
 
@@ -90,6 +92,7 @@ namespace Siegebox.Shell
             }
 
             promptToWrite = null;
+            promptSecret = false;
             promptEnqueued = false;
             awaitingLine = true;
             return null;

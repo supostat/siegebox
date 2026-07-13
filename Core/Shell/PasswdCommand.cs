@@ -12,7 +12,7 @@ namespace Siegebox.Shell
     /// effective identity to root — the only reason an unprivileged caller can write the
     /// root-only shadow. Authorization and the old-password prompt are keyed on the REAL
     /// identity, never the effective one, so a setuid-elevated player may change only their own
-    /// password. Password echo is not suppressed by the terminal — a known limitation.
+    /// password.
     /// </summary>
     public sealed class PasswdCommand : ICommand
     {

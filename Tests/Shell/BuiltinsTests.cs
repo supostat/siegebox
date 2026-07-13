@@ -9,6 +9,18 @@ namespace Siegebox.Shell.Tests
         private static readonly Credentials Root = new Credentials(0);
 
         [Test]
+        public void ReadLine_defaults_to_a_non_secret_prompt()
+        {
+            Assert.That(BuiltinResult.ReadLine("p").Secret, Is.False);
+        }
+
+        [Test]
+        public void ReadLine_marked_secret_carries_the_flag()
+        {
+            Assert.That(BuiltinResult.ReadLine("p", secret: true).Secret, Is.True);
+        }
+
+        [Test]
         public void Cd_stores_the_canonical_directory()
         {
             var harness = new ShellHarness();

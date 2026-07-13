@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Siegebox.Security;
 
 namespace Siegebox.Shell.Tests
 {
@@ -15,6 +16,18 @@ namespace Siegebox.Shell.Tests
             var harness = new ShellHarness(uid: 1000);
             harness.SeedUsers();
             return harness;
+        }
+
+        [Test]
+        public void Su_password_prompt_is_marked_secret()
+        {
+            var harness = Unprivileged();
+            var su = new SuBuiltin(new AuthenticationService(harness.Vfs));
+
+            var result = su.Execute(harness.Session, new[] { "root" }, null);
+
+            Assert.That(result.ReadLinePrompt, Is.EqualTo("Password: "));
+            Assert.That(result.Secret, Is.True);
         }
 
         [Test]

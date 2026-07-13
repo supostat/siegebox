@@ -11,7 +11,6 @@ namespace Siegebox.Shell
     /// every other user must supply the target's password, prompted on stdin and verified
     /// against /etc/shadow through the trusted <see cref="AuthenticationService"/>. A wrong
     /// password or an unknown user fails with exit 1 and leaves the identity unchanged.
-    /// Password echo is not yet suppressed by the terminal — a known limitation.
     /// </summary>
     public sealed class SuBuiltin : IBuiltin
     {
@@ -56,7 +55,7 @@ namespace Siegebox.Shell
 
             if (inputLine == null)
             {
-                return BuiltinResult.ReadLine("Password: ");
+                return BuiltinResult.ReadLine("Password: ", secret: true);
             }
 
             if (!authentication.Authenticate(targetName, inputLine))

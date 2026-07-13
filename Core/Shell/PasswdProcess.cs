@@ -153,7 +153,7 @@ namespace Siegebox.Shell
 
             if (!promptEnqueued)
             {
-                pendingWrites.Enqueue(Stdout, prompts[promptIndex]);
+                pendingWrites.Enqueue(Stdout, SecretPromptMarker.Sequence + prompts[promptIndex]);
                 promptEnqueued = true;
             }
 

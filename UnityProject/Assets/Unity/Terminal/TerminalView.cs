@@ -48,6 +48,8 @@ namespace Siegebox.Unity
 
         public void SetPrompt(string text) => prompt.text = text;
 
+        public void SetInputMasked(bool masked) => commandInput.isPasswordField = masked;
+
         public void SetInputText(string text)
         {
             commandInput.value = text;

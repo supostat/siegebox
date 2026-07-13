@@ -36,6 +36,10 @@ namespace Siegebox.Terminal.Tests
 
         public void RegisterCommand(ICommand command) => Commands.Register(command);
 
+        public void SeedUsers() => Siegebox.Security.UserSeed.Seed(Vfs);
+
+        public void SeedBin() => Siegebox.Security.BinSeed.Seed(Vfs);
+
         public void TickAndPump(int count = 8)
         {
             for (var tick = 0; tick < count; tick++)

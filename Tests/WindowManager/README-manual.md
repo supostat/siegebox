@@ -199,7 +199,11 @@ and is exercised in the editor, not by `dotnet test`. Run in Unity 6000.4.0f1.
 ## su authentication
 
 - [ ] `su root`, then at the `Password:` prompt type `root` → the session becomes root and the
-      prompt switches to ` # `. (Password echo is not suppressed yet — a known limitation.)
+      prompt switches to ` # `.
+- [ ] Password masking: while typing the `su root` password, the input field renders the
+      characters MASKED (dots / hidden), and the field un-masks again after you press Enter.
+      The password appears NOWHERE in the scrollback, and pressing Up-arrow (history) after the
+      prompt never recalls it — history holds only the `su root` command line.
 - [ ] `su root` with a wrong password → `su: authentication failure`, exit 1, you stay
       `player` (prompt still ` $ `).
 - [ ] From a root session, `su player` switches to player with NO password prompt (root
@@ -249,8 +253,11 @@ bit), and `passwd` writes the root-only `/etc/shadow` only through the setuid
 ## passwd changes your own password
 
 - [ ] As `player`, `passwd`; at `Current password:` type `player`, then a new password
-      twice → `passwd: password updated successfully`. (Password echo is not suppressed — a
-      known limitation, same as `su`.)
+      twice → `passwd: password updated successfully`.
+- [ ] Password masking (same as `su`): each of the three `passwd` prompts masks the typed
+      characters in the input field and un-masks after Enter; none of the passwords appear in
+      the scrollback, and Up-arrow (history) afterwards never recalls any of them — history
+      holds only the `passwd` command line.
 - [ ] `su player` with the OLD password `player` → `su: authentication failure`; `su player`
       with the NEW password succeeds — the change reached the root-only shadow through the
       setuid `/usr/bin/passwd`, written under uid 1000.
@@ -266,6 +273,9 @@ bit), and `passwd` writes the root-only `/etc/shadow` only through the setuid
 
 - [ ] All of the above is Core-covered by `dotnet test Siegebox.sln` → 616/616 green; this
       checklist is the manual/visual confirmation in a live terminal.
+- [ ] Password no-echo (the su/passwd masking + history-gate steps above) adds Core coverage
+      for the secret-prompt marker, the scrollback suppression and the `LastSubmitWasSecret`
+      history signal; with it the full suite is `dotnet test Siegebox.sln` → 654/654 green.
 
 # Persistence (Phase 8)
 

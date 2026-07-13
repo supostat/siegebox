@@ -35,14 +35,20 @@ namespace Siegebox.Unity
             }
 
             view.SetPrompt(session.IsBusy ? "" : session.PromptText);
+            view.SetInputMasked(session.EchoSuppressed);
         }
 
         public void Dispose() => session.Close();
 
         private void OnLineSubmitted(string line)
         {
-            history.Add(line);
-            if (!session.SubmitLine(line))
+            var queued = session.SubmitLine(line);
+            if (!session.LastSubmitWasSecret)
+            {
+                history.Add(line);
+            }
+
+            if (!queued)
             {
                 view.SetInputText(line);
             }
