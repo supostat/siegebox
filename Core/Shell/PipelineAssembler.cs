@@ -20,6 +20,7 @@ namespace Siegebox.Shell
         private readonly CommandRegistry commands;
         private readonly BuiltinRegistry builtins;
         private readonly ArgumentExpander expander;
+        private readonly ExecutableResolver executableResolver;
 
         public PipelineAssembler(
             Scheduler scheduler,
@@ -33,6 +34,7 @@ namespace Siegebox.Shell
             this.commands = commands;
             this.builtins = builtins;
             this.expander = expander;
+            executableResolver = new ExecutableResolver(vfs);
         }
 
         public LaunchedPipeline Launch(
@@ -155,7 +157,13 @@ namespace Siegebox.Shell
 
             if (commands.TryGet(argv[0], out var command))
             {
-                return command.CreateProcess(context, arguments);
+                var elevated = executableResolver.Resolve(argv[0], session.Credentials);
+                var effectiveContext = elevated is null
+                    ? context
+                    : new ExecutionContext(
+                        context.WorkingDirectory, elevated, context.Environment,
+                        context.FileDescriptors, session.Credentials);
+                return command.CreateProcess(effectiveContext, arguments);
             }
 
             return new MessageProcess(context, $"sh: {argv[0]}: command not found\n", FileDescriptorTable.Stderr, 127);

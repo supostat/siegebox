@@ -57,7 +57,10 @@ namespace Siegebox.Vfs
         }
 
         public void CreateFile(string path, PermissionMode mode, Credentials credentials)
-            => CreateEntry(path, credentials, (parent, name) => VfsNode.NewFile(name, credentials.Uid, parent.GroupGid, mode));
+        {
+            var effectiveMode = credentials.IsRoot ? mode : mode.WithSetUid(false);
+            CreateEntry(path, credentials, (parent, name) => VfsNode.NewFile(name, credentials.Uid, parent.GroupGid, effectiveMode));
+        }
 
         public void CreateDirectory(string path, PermissionMode mode, Credentials credentials)
             => CreateEntry(path, credentials, (parent, name) => VfsNode.NewDirectory(name, credentials.Uid, parent.GroupGid, mode));
@@ -82,7 +85,7 @@ namespace Siegebox.Vfs
             {
                 NodeType.Directory => throw new VfsException(VfsError.EISDIR, path),
                 NodeType.Device => OpenDevice(node),
-                NodeType.File => new FileStream(node.Content!, mode),
+                NodeType.File => OpenFileForAccess(node, mode, credentials),
                 _ => throw new VfsException(VfsError.EINVAL, path)
             };
             events.Publish(KernelEvent.FileOpened(path, credentials.Uid, AccessNameFor(mode)));
@@ -166,7 +169,8 @@ namespace Siegebox.Vfs
             resolver.RequireAccess(destinationParent, credentials, PermissionMode.WriteBit, destinationPath);
             GuardNotExists(destinationParent, destinationName, destinationPath);
 
-            var copy = VfsNode.NewFile(destinationName, credentials.Uid, destinationParent.GroupGid, source.Mode, new FileContent(content));
+            var copyMode = credentials.IsRoot ? source.Mode : source.Mode.WithSetUid(false);
+            var copy = VfsNode.NewFile(destinationName, credentials.Uid, destinationParent.GroupGid, copyMode, new FileContent(content));
             Attach(destinationParent, copy);
         }
 
@@ -193,6 +197,11 @@ namespace Siegebox.Vfs
         {
             var node = resolver.Resolve(path, credentials, 0, true);
             RequireOwnerOrRoot(node, credentials, path);
+            if (mode.SetUid && !node.Mode.SetUid && !credentials.IsRoot)
+            {
+                throw new VfsException(VfsError.EPERM, path);
+            }
+
             node.Mode = mode;
         }
 
@@ -227,6 +236,7 @@ namespace Siegebox.Vfs
                 case NodeType.Device:
                     return OpenDevice(node);
                 case NodeType.File:
+                    DropSetuidOnNonRootWrite(node, credentials);
                     if (behavior == WriteBehavior.Truncate)
                     {
                         node.Content!.Truncate();
@@ -235,6 +245,30 @@ namespace Siegebox.Vfs
                     return new FileStream(node.Content!, OpenMode.Write, behavior == WriteBehavior.Append);
                 default:
                     throw new VfsException(VfsError.EINVAL, path);
+            }
+        }
+
+        private static IByteStream OpenFileForAccess(VfsNode node, OpenMode mode, Credentials credentials)
+        {
+            if (mode == OpenMode.Write || mode == OpenMode.ReadWrite)
+            {
+                DropSetuidOnNonRootWrite(node, credentials);
+            }
+
+            return new FileStream(node.Content!, mode);
+        }
+
+        /// <summary>
+        /// POSIX drop-on-write: a non-root write to an existing setuid file clears the bit. The
+        /// single place both write doors (Open write modes and OpenForWrite) enforce it, so the
+        /// invariant cannot be bypassed by picking one door over the other. Runs only after the
+        /// resolver has already granted write access.
+        /// </summary>
+        private static void DropSetuidOnNonRootWrite(VfsNode node, Credentials credentials)
+        {
+            if (!credentials.IsRoot && node.Mode.SetUid)
+            {
+                node.Mode = node.Mode.WithSetUid(false);
             }
         }
 

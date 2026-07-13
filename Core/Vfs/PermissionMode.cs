@@ -5,7 +5,6 @@ namespace Siegebox.Vfs
     public readonly struct PermissionMode : IEquatable<PermissionMode>
     {
         private const int MinimumBits = 0;
-        private const int MaximumBits = 511;
         private const int ClassMask = 0b111;
         private const int OwnerShift = 6;
         private const int GroupShift = 3;
@@ -13,14 +12,18 @@ namespace Siegebox.Vfs
         public const int ReadBit = 4;
         public const int WriteBit = 2;
         public const int ExecuteBit = 1;
+        public const int SetUidBit = 0b100_000_000_000;
+        public const int PermissionBitsMask = 0b111_111_111;
+
+        private const int MaximumBits = SetUidBit | PermissionBitsMask;
 
         public int Bits { get; }
 
         public PermissionMode(int bits)
         {
-            if (bits < MinimumBits || bits > MaximumBits)
+            if (bits < MinimumBits || (bits & ~MaximumBits) != 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(bits), bits, "Permission bits must be in the range 0..511.");
+                throw new ArgumentOutOfRangeException(nameof(bits), bits, "Permission bits must be owner/group/other rwx (low 9 bits) optionally with the setuid bit.");
             }
 
             Bits = bits;
@@ -31,6 +34,11 @@ namespace Siegebox.Vfs
         public int GroupRwx => (Bits >> GroupShift) & ClassMask;
 
         public int OtherRwx => Bits & ClassMask;
+
+        public bool SetUid => (Bits & SetUidBit) != 0;
+
+        public PermissionMode WithSetUid(bool setUid)
+            => new PermissionMode(setUid ? Bits | SetUidBit : Bits & ~SetUidBit);
 
         public bool Equals(PermissionMode other) => Bits == other.Bits;
 
@@ -48,6 +56,11 @@ namespace Siegebox.Vfs
             WriteTriplet(characters, 0, OwnerRwx);
             WriteTriplet(characters, 3, GroupRwx);
             WriteTriplet(characters, 6, OtherRwx);
+            if (SetUid)
+            {
+                characters[2] = (OwnerRwx & ExecuteBit) != 0 ? 's' : 'S';
+            }
+
             return new string(characters);
         }
 

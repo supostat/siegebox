@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Text;
 using Siegebox.Vfs;
 
 namespace Siegebox.Security
@@ -104,28 +102,12 @@ namespace Siegebox.Security
 
             try
             {
-                content = ReadAllText(stream);
+                content = ByteStreamText.ReadToEnd(stream);
                 return true;
             }
             finally
             {
                 stream.CloseRead();
-            }
-        }
-
-        private static string ReadAllText(IByteStream stream)
-        {
-            var collected = new MemoryStream();
-            var chunk = new byte[4096];
-            while (true)
-            {
-                var result = stream.Read(chunk, 0, chunk.Length);
-                if (result.Status != StreamStatus.Ok)
-                {
-                    return Encoding.UTF8.GetString(collected.ToArray());
-                }
-
-                collected.Write(chunk, 0, result.Count);
             }
         }
     }

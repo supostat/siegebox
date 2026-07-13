@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using Siegebox.Process;
 using Siegebox.Vfs;
 
@@ -17,8 +16,7 @@ namespace Siegebox.Shell
         private readonly ShellSession target;
         private readonly IReadOnlyList<string> arguments;
         private readonly PendingWriteQueue pendingWrites = new PendingWriteQueue();
-        private readonly List<byte> lineBytes = new List<byte>();
-        private readonly byte[] oneByte = new byte[1];
+        private readonly LineReader lineReader = new LineReader();
         private bool executed;
         private string? deliveredLine;
         private string? promptToWrite;
@@ -104,7 +102,7 @@ namespace Siegebox.Shell
                 return null;
             }
 
-            if (!TryReadLine(out var line))
+            if (!lineReader.TryReadLine(Stdin, out var line))
             {
                 WakeCondition = WakeCondition.Readable(Stdin);
                 return ProcessState.Sleeping;
@@ -124,34 +122,6 @@ namespace Siegebox.Shell
             }
 
             return ProcessState.Finished;
-        }
-
-        private bool TryReadLine(out string line)
-        {
-            line = string.Empty;
-            while (true)
-            {
-                var result = Stdin.Read(oneByte, 0, 1);
-                if (result.Status == StreamStatus.WouldBlock || (result.Status == StreamStatus.Ok && result.Count == 0))
-                {
-                    return false;
-                }
-
-                if (result.Status == StreamStatus.Eof || oneByte[0] == (byte)'\n')
-                {
-                    line = DecodeLine();
-                    return true;
-                }
-
-                lineBytes.Add(oneByte[0]);
-            }
-        }
-
-        private string DecodeLine()
-        {
-            var text = Encoding.UTF8.GetString(lineBytes.ToArray()).TrimEnd('\r');
-            lineBytes.Clear();
-            return text;
         }
 
         private BuiltinResult ExecuteSafely(string? inputLine)

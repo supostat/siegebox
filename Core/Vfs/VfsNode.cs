@@ -88,7 +88,7 @@ namespace Siegebox.Vfs
                 throw new VfsException(VfsError.EINVAL, snapshot.Name);
             }
 
-            var mode = new PermissionMode(snapshot.ModeBits);
+            var mode = ParseMode(snapshot);
             return snapshot.Type switch
             {
                 NodeType.File => RebuildFile(snapshot, mode),
@@ -108,6 +108,18 @@ namespace Siegebox.Vfs
             }
 
             return children;
+        }
+
+        private static PermissionMode ParseMode(VfsNodeSnapshot snapshot)
+        {
+            try
+            {
+                return new PermissionMode(snapshot.ModeBits);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                throw new VfsException(VfsError.EINVAL, snapshot.Name);
+            }
         }
 
         private static string RequireTarget(VfsNodeSnapshot snapshot)

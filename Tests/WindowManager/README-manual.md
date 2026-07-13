@@ -210,4 +210,59 @@ and is exercised in the editor, not by `dotnet test`. Run in Unity 6000.4.0f1.
 
 ## Regression
 
-- [ ] `dotnet test Siegebox.sln` → 557/557 green.
+- [ ] `dotnet test Siegebox.sln` → 616/616 green.
+
+# setuid executables & passwd (Phase 7c)
+
+Closes the identity model: privilege escalation is a visible property of a FILE (the setuid
+bit), and `passwd` writes the root-only `/etc/shadow` only through the setuid
+`/usr/bin/passwd`. Start in the default `player` terminal (prompt ends ` $ `).
+
+## Setup
+
+- [ ] No editor rewiring needed — `KernelBridge` already seeds `/usr/bin` next to the user
+      db on boot (`BinSeed.Seed` after `UserSeed.Seed`). Just press Play and open a terminal.
+
+## The setuid bit is visible
+
+- [ ] `ls -l /usr/bin` → the `passwd` row reads `-rwsr-xr-x  root  0  0  passwd`
+      (the `s` in the owner-execute slot is the setuid bit; owner and group are `root`/`0`).
+
+## Elevation is a property of the file
+
+- [ ] As `player`, `cat /root/secret` → `cat: /root/secret: Permission denied`
+      (an unprivileged process cannot reach the root-only home).
+- [ ] `su root` (password `root`), then set up a root-only secret and a setuid `cat`:
+      `echo top-secret > /root/secret`, `chmod 600 /root/secret`, `touch /usr/bin/cat`,
+      `chmod 4755 /usr/bin/cat`; then `su player` back to ` $ `.
+- [ ] As `player`, `cat /root/secret` now prints `top-secret` — the read succeeds ONLY
+      because the setuid `/usr/bin/cat` runs with the file owner's (root) effective identity.
+      Remove the bit (`su root ; chmod 0755 /usr/bin/cat ; su player`) and the same
+      `cat /root/secret` is denied again — proving access flows from the file, not from ambient.
+
+## Only root introduces setuid
+
+- [ ] As `player`, `touch /home/player/mine ; chmod u+s /home/player/mine` →
+      `chmod: /home/player/mine: Operation not permitted`, exit 1 (a non-root caller cannot
+      ADD the setuid bit); `ls -l /home/player/mine` shows a normal `x`, no `s`.
+
+## passwd changes your own password
+
+- [ ] As `player`, `passwd`; at `Current password:` type `player`, then a new password
+      twice → `passwd: password updated successfully`. (Password echo is not suppressed — a
+      known limitation, same as `su`.)
+- [ ] `su player` with the OLD password `player` → `su: authentication failure`; `su player`
+      with the NEW password succeeds — the change reached the root-only shadow through the
+      setuid `/usr/bin/passwd`, written under uid 1000.
+
+## passwd policy is keyed on the REAL identity
+
+- [ ] As `player`, `passwd root` → `passwd: you may not change the password for root`,
+      exit 1 — the setuid bit grants effective-root for the write, but authorization uses the
+      REAL (player) identity, so a player can never change another user's password.
+      `su root` with `root` still works (the root hash was never touched).
+
+## Regression
+
+- [ ] All of the above is Core-covered by `dotnet test Siegebox.sln` → 616/616 green; this
+      checklist is the manual/visual confirmation in a live terminal.

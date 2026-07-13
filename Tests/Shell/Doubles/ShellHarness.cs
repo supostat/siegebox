@@ -100,6 +100,8 @@ namespace Siegebox.Shell.Tests
 
         public void SeedUsers() => Siegebox.Security.UserSeed.Seed(Vfs);
 
+        public void SeedBin() => Siegebox.Security.BinSeed.Seed(Vfs);
+
         public void FeedInput(string text)
         {
             var bytes = Encoding.UTF8.GetBytes(text);

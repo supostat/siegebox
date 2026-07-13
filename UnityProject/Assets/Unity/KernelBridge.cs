@@ -113,6 +113,7 @@ namespace Siegebox.Unity
         private void InstallBaseMod()
         {
             UserSeed.Seed(vfs);
+            BinSeed.Seed(vfs);
             var bootBuiltins = new BuiltinRegistry();
             var bootJobs = new JobTable();
             BaseCommandSet.Install(commands, bootBuiltins, vfs, scheduler, bootJobs);

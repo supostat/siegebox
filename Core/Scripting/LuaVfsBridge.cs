@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Text;
 using MoonSharp.Interpreter;
 using Siegebox.Vfs;
@@ -42,7 +41,7 @@ namespace Siegebox.Scripting
                 var stream = vfs.Open(path, OpenMode.Read, credentials);
                 try
                 {
-                    return ReadAllText(stream);
+                    return ByteStreamText.ReadToEnd(stream);
                 }
                 finally
                 {
@@ -84,22 +83,6 @@ namespace Siegebox.Scripting
             }
 
             return DynValue.NewTable(array);
-        }
-
-        private static string ReadAllText(IByteStream stream)
-        {
-            var collected = new MemoryStream();
-            var chunk = new byte[4096];
-            while (true)
-            {
-                var result = stream.Read(chunk, 0, chunk.Length);
-                if (result.Status != StreamStatus.Ok)
-                {
-                    return Encoding.UTF8.GetString(collected.ToArray());
-                }
-
-                collected.Write(chunk, 0, result.Count);
-            }
         }
 
         private static void WriteAllText(IByteStream stream, string path, string text)

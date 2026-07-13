@@ -22,7 +22,7 @@ namespace Siegebox.Shell
 
             InstallBuiltins(builtins, vfs, scheduler, jobs);
 
-            commands.Register(new LsCommand(vfs));
+            commands.Register(new LsCommand(vfs, new AuthenticationService(vfs)));
             commands.Register(new CatCommand(vfs));
             commands.Register(new PwdCommand());
             commands.Register(new MkdirCommand(vfs));
@@ -31,10 +31,12 @@ namespace Siegebox.Shell
             commands.Register(new CpCommand(vfs));
             commands.Register(new EchoCommand());
             commands.Register(new TouchCommand(vfs));
+            commands.Register(new ChmodCommand(vfs));
             commands.Register(new ClearCommand());
             commands.Register(new HelpCommand(commands, builtins));
             commands.Register(new PsCommand(scheduler));
             commands.Register(new KillCommand(scheduler));
+            commands.Register(new PasswdCommand(vfs, new AuthenticationService(vfs)));
         }
 
         public static void InstallBuiltins(

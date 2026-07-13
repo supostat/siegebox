@@ -30,15 +30,17 @@ namespace Siegebox.Security
             }
 
             var records = new List<UserRecord>();
+            var lineNumber = 0;
             foreach (var rawLine in passwdContent.Split('\n'))
             {
+                lineNumber++;
                 var line = rawLine.TrimEnd('\r');
                 if (line.Length == 0 || line[0] == '#')
                 {
                     continue;
                 }
 
-                records.Add(ParseLine(line));
+                records.Add(ParseLine(line, lineNumber));
             }
 
             return new UserDatabase(records);
@@ -74,34 +76,34 @@ namespace Siegebox.Security
             return false;
         }
 
-        private static UserRecord ParseLine(string line)
+        private static UserRecord ParseLine(string line, int lineNumber)
         {
             var fields = line.Split(':');
             if (fields.Length != FieldCount)
             {
-                throw new UserDatabaseException($"passwd: malformed entry '{line}'");
+                throw new UserDatabaseException($"passwd: malformed entry on line {lineNumber}");
             }
 
             var name = fields[0];
             if (name.Length == 0)
             {
-                throw new UserDatabaseException($"passwd: blank user name in '{line}'");
+                throw new UserDatabaseException($"passwd: blank user name on line {lineNumber}");
             }
 
             if (!int.TryParse(fields[1], out var uid) || uid < 0)
             {
-                throw new UserDatabaseException($"passwd: invalid uid in '{line}'");
+                throw new UserDatabaseException($"passwd: invalid uid on line {lineNumber}");
             }
 
             if (!int.TryParse(fields[2], out var gid) || gid < 0)
             {
-                throw new UserDatabaseException($"passwd: invalid gid in '{line}'");
+                throw new UserDatabaseException($"passwd: invalid gid on line {lineNumber}");
             }
 
             var home = fields[3];
             if (home.Length == 0 || home[0] != '/')
             {
-                throw new UserDatabaseException($"passwd: invalid home in '{line}'");
+                throw new UserDatabaseException($"passwd: invalid home on line {lineNumber}");
             }
 
             return new UserRecord(name, uid, gid, home);

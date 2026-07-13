@@ -115,7 +115,7 @@ namespace Siegebox.Shell.Tests
 
             var output = harness.DrainOutput();
             Assert.That(output, Does.Contain("builtins: cd export jobs su wait\n"));
-            Assert.That(output, Does.Contain("commands: cat clear cp echo help kill ls mkdir mv ps pwd rm touch\n"));
+            Assert.That(output, Does.Contain("commands: cat chmod clear cp echo help kill ls mkdir mv passwd ps pwd rm touch\n"));
         }
 
         [Test]
