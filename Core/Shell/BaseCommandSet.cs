@@ -24,6 +24,7 @@ namespace Siegebox.Shell
 
             commands.Register(new LsCommand(vfs, new AuthenticationService(vfs)));
             commands.Register(new CatCommand(vfs));
+            commands.Register(new ManCommand(vfs));
             commands.Register(new PwdCommand());
             commands.Register(new MkdirCommand(vfs));
             commands.Register(new RmCommand(vfs));

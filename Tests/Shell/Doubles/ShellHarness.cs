@@ -1,4 +1,5 @@
 using System.Text;
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Shell;
 using Siegebox.Vfs;
@@ -19,13 +20,15 @@ namespace Siegebox.Shell.Tests
             Scheduler = new Scheduler();
             Commands = new CommandRegistry();
             Builtins = new BuiltinRegistry();
+            Manual = new Manual();
+            ManualSeed.RegisterInto(Manual);
             BaseCommandSet.Install(Commands, Builtins, Vfs, Scheduler, Jobs);
             Session = new ShellSession(workingDirectory, new Credentials(uid));
             TerminalInput = new PipeStream();
             TerminalOutput = new PipeStream();
             TerminalError = new PipeStream();
             Shell = new Shell(
-                Scheduler, Vfs, Commands, Builtins, Session, Jobs,
+                Scheduler, Vfs, Commands, Builtins, Manual, Session, Jobs,
                 TerminalInput, TerminalOutput, TerminalError);
         }
 
@@ -36,6 +39,8 @@ namespace Siegebox.Shell.Tests
         public CommandRegistry Commands { get; }
 
         public BuiltinRegistry Builtins { get; }
+
+        public Manual Manual { get; }
 
         public JobTable Jobs { get; } = new JobTable();
 

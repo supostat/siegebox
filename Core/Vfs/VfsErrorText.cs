@@ -1,6 +1,4 @@
-using Siegebox.Vfs;
-
-namespace Siegebox.Shell
+namespace Siegebox.Vfs
 {
     internal static class VfsErrorText
     {

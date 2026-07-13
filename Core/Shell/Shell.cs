@@ -1,4 +1,5 @@
 using System;
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Vfs;
 
@@ -27,6 +28,7 @@ namespace Siegebox.Shell
             VirtualFileSystem vfs,
             CommandRegistry commands,
             BuiltinRegistry builtins,
+            Manual manual,
             ShellSession session,
             JobTable jobs,
             IByteStream terminalInput,
@@ -49,6 +51,11 @@ namespace Siegebox.Shell
                 throw new ArgumentNullException(nameof(builtins));
             }
 
+            if (manual is null)
+            {
+                throw new ArgumentNullException(nameof(manual));
+            }
+
             this.session = session ?? throw new ArgumentNullException(nameof(session));
             this.jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
             if (terminalInput is null)
@@ -69,7 +76,7 @@ namespace Siegebox.Shell
             this.terminalInput = new NonClosingStream(terminalInput);
             this.terminalOutput = new NonClosingStream(terminalOutput);
             this.terminalError = new NonClosingStream(terminalError);
-            assembler = new PipelineAssembler(scheduler, vfs, commands, builtins, new ArgumentExpander());
+            assembler = new PipelineAssembler(scheduler, vfs, commands, builtins, manual, new ArgumentExpander());
         }
 
         public ShellSession Session => session;

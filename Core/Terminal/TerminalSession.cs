@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Shell;
 using Siegebox.Vfs;
@@ -41,13 +42,14 @@ namespace Siegebox.Terminal
             VirtualFileSystem vfs,
             CommandRegistry commands,
             BuiltinRegistry builtins,
+            Manual manual,
             ShellSession session,
             JobTable jobs)
         {
             this.scheduler = scheduler ?? throw new ArgumentNullException(nameof(scheduler));
             this.session = session ?? throw new ArgumentNullException(nameof(session));
             this.jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
-            shell = new ShellInterpreter(scheduler, vfs, commands, builtins, session, jobs, terminalInput, terminalOutput, terminalError);
+            shell = new ShellInterpreter(scheduler, vfs, commands, builtins, manual, session, jobs, terminalInput, terminalOutput, terminalError);
             outputDrain = new StreamTextDrain(terminalOutput);
             errorDrain = new StreamTextDrain(terminalError);
             collector = new JobStatusCollector(scheduler, jobs);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Siegebox.App;
+using Siegebox.Documentation;
 using Siegebox.Events;
 using Siegebox.Persistence;
 using Siegebox.Process;
@@ -47,6 +48,7 @@ namespace Siegebox.Unity
         private AuthenticationService authentication;
         private Scheduler scheduler;
         private CommandRegistry commands;
+        private Manual manual;
         private AppRegistry appRegistry;
         private bool skipNextTick;
 
@@ -73,6 +75,7 @@ namespace Siegebox.Unity
             authentication = new AuthenticationService(vfs);
             scheduler = new Scheduler(events: events);
             commands = new CommandRegistry();
+            manual = new Manual();
             appRegistry = new AppRegistry();
             var fileTypes = new FileTypeRegistry();
 
@@ -233,14 +236,18 @@ namespace Siegebox.Unity
             {
                 UserSeed.Seed(vfs);
                 BinSeed.Seed(vfs);
+                ManualSeed.SeedPages(vfs);
+                BoxSeed.Seed(vfs);
             }
 
+            ManualSeed.RegisterInto(manual);
             var bootBuiltins = new BuiltinRegistry();
             var bootJobs = new JobTable();
             BaseCommandSet.Install(commands, bootBuiltins, vfs, scheduler, bootJobs);
             commands.Register(new OpenCommand(appRegistry, appHost));
             appRegistry.Register(new AppDescriptor("terminal", "terminal", CreateTerminalApp));
             appRegistry.Register(new AppDescriptor("files", "files", CreateFileManagerApp));
+            appRegistry.Register(new AppDescriptor("docs", "docs", CreateDocBrowserApp));
             appRegistry.Register(new AppDescriptor("about", "about", CreateAboutApp));
         }
 
@@ -250,7 +257,7 @@ namespace Siegebox.Unity
             var jobs = new JobTable();
             BaseCommandSet.InstallBuiltins(builtins, vfs, scheduler, jobs);
             var shellSession = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
-            var terminalSession = new TerminalSession(scheduler, vfs, commands, builtins, shellSession, jobs);
+            var terminalSession = new TerminalSession(scheduler, vfs, commands, builtins, manual, shellSession, jobs);
             var identity = new WindowIdentity(UserSeed.PlayerName, shellSession.Credentials.Uid, shellSession.Credentials.IsRoot);
             return new TerminalContent(terminalTemplate, terminalSession, identity);
         }
@@ -260,6 +267,14 @@ namespace Siegebox.Unity
             var session = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
             var identity = new WindowIdentity(UserSeed.PlayerName, session.Credentials.Uid, session.Credentials.IsRoot);
             return new FileManagerApp(fileManagerTemplate, vfs, session.Credentials, identity);
+        }
+
+        private IApp CreateDocBrowserApp()
+        {
+            var session = SessionLauncher.OpenFor(authentication, UserSeed.PlayerName);
+            var identity = new WindowIdentity(UserSeed.PlayerName, session.Credentials.Uid, session.Credentials.IsRoot);
+            var browser = new DocBrowser(() => commands.Names, manual, vfs, session.Credentials, BoxSeed.ManifestPath);
+            return new DocBrowserContent(browser, identity);
         }
 
         private static IApp CreateAboutApp() => new StaticTextApp("about", "Siegebox — a desktop inside the game.");

@@ -425,3 +425,52 @@ constant, so the binding resolves as soon as the editor imports the `.ttf`.
       (`WindowIdentity` carries only primitives).
 - [ ] `KernelBridge` is still the sole `MonoBehaviour` and sole `scheduler.Tick()` caller after
       the desktop/panel additions.
+
+# Documentation & help (Phase 10)
+
+> `man`, `--help` and the doc-browser are covered headlessly by the Core suite
+> (`dotnet test Siegebox.sln` → 681/681: `ManCommandTests`, `HelpFlagTests`,
+> `DocBrowserTests`). The steps below confirm the wiring renders in a live editor
+> session; the doc-browser view itself has no automated host.
+
+## man from the terminal
+
+- [ ] In a terminal, `man ls` prints the ls manual page. `man cat`, `man man`, etc. each print
+      their page — the pages live in the VFS under `/usr/share/man` (try `ls /usr/share/man`).
+- [ ] `man nope` prints `man: /usr/share/man/nope: No such file or directory` and sets a non-zero
+      exit (`echo $?` → 1) — same shape as `cat` on a missing file.
+- [ ] `man` reads under your session identity: as `player`, `man <cmd>` works because the pages are
+      world-readable; a page you don't have read permission on would give `Permission denied` (the
+      resolver mediates, not ambient root).
+- [ ] `man cat | cat` and `man cat > /tmp-out` behave like any normal command (pipe / redirect).
+
+## --help
+
+- [ ] `cat --help` prints just the usage synopsis (e.g. `usage: cat [FILE]...`) and exits 0 — no
+      file is read. `ls --help`, `chmod --help`, etc. each print their own synopsis.
+- [ ] An unknown flag is NOT treated as help: `ls --nonsense` behaves as it did before (not a usage
+      dump).
+
+## Doc-browser app
+
+- [ ] The `docs` launcher appears on the dock automatically (it is a registry `AppDescriptor`, not a
+      hardcoded entry) — open it from the dock, or run `open docs` in a terminal.
+- [ ] The doc-browser opens as an ordinary window (title `docs`, identity indicator in the chrome).
+      Its left nav lists commands grouped by category, each row showing `name — description`.
+- [ ] Selecting a command shows its manual page in the viewer pane; the text renders with rich text
+      OFF (no markup interpreted). A registered mod command with no page appears under an `other`
+      category.
+
+## Target hints
+
+- [ ] The doc-browser shows a distinct hints block sourced from `/etc/siegebox/box.json` (seeded by
+      the base mod) — the sample box shows entries like "Try `man ls`…". The hints are read from that
+      external file under the session identity, not baked into the app.
+- [ ] Remove/rename `/etc/siegebox/box.json` (or load a save without it) and reopen `docs`: the hints
+      block is hidden (no crash) — absent manifest = no hints.
+
+## Regression
+
+- [ ] `dotnet test Siegebox.sln` → 681/681 green (654 Phase-9 baseline + 24 Phase-10 + 3 cleanup).
+- [ ] Core stays engine-free: the documentation catalog, `man`, `DocBrowser`, and `BoxManifest` live
+      in `Core/` with zero `UnityEngine` references; only `DocBrowserContent` (the view) is Unity-side.

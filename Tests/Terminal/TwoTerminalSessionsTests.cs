@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using NUnit.Framework;
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Shell;
 using Siegebox.Shell.Tests;
@@ -29,8 +30,9 @@ namespace Siegebox.Terminal.Tests
 
                 SessionA = new ShellSession("/", new Credentials(0));
                 SessionB = new ShellSession("/", new Credentials(0));
-                TerminalA = new TerminalSession(Scheduler, Vfs, Commands, builtinsA, SessionA, JobsA);
-                TerminalB = new TerminalSession(Scheduler, Vfs, Commands, builtinsB, SessionB, JobsB);
+                var manual = new Manual();
+                TerminalA = new TerminalSession(Scheduler, Vfs, Commands, builtinsA, manual, SessionA, JobsA);
+                TerminalB = new TerminalSession(Scheduler, Vfs, Commands, builtinsB, manual, SessionB, JobsB);
             }
 
             public VirtualFileSystem Vfs { get; }

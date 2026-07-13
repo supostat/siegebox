@@ -1,3 +1,4 @@
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Shell;
 using Siegebox.Terminal;
@@ -17,7 +18,7 @@ namespace Siegebox.Terminal.Tests
             Jobs = new JobTable();
             BaseCommandSet.Install(Commands, Builtins, Vfs, Scheduler, Jobs);
             ShellSession = new ShellSession(workingDirectory, new Credentials(uid));
-            Session = new TerminalSession(Scheduler, Vfs, Commands, Builtins, ShellSession, Jobs);
+            Session = new TerminalSession(Scheduler, Vfs, Commands, Builtins, new Manual(), ShellSession, Jobs);
         }
 
         public VirtualFileSystem Vfs { get; }

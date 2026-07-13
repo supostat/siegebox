@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Process.Tests;
 using Siegebox.Vfs;
@@ -22,7 +23,7 @@ namespace Siegebox.Shell.Tests
                 Commands.Register(new SpinCommand());
                 Session = new ShellSession("/", new Credentials(0));
                 Shell = new Shell(
-                    Scheduler, Vfs, Commands, Builtins, Session, Jobs,
+                    Scheduler, Vfs, Commands, Builtins, new Manual(), Session, Jobs,
                     new PipeStream(), new PipeStream(), new PipeStream());
             }
 

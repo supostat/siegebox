@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
+using Siegebox.Documentation;
 using Siegebox.Process;
 using Siegebox.Vfs;
 
@@ -19,6 +21,7 @@ namespace Siegebox.Shell
         private readonly VirtualFileSystem vfs;
         private readonly CommandRegistry commands;
         private readonly BuiltinRegistry builtins;
+        private readonly Manual manual;
         private readonly ArgumentExpander expander;
         private readonly ExecutableResolver executableResolver;
 
@@ -27,12 +30,14 @@ namespace Siegebox.Shell
             VirtualFileSystem vfs,
             CommandRegistry commands,
             BuiltinRegistry builtins,
+            Manual manual,
             ArgumentExpander expander)
         {
             this.scheduler = scheduler;
             this.vfs = vfs;
             this.commands = commands;
             this.builtins = builtins;
+            this.manual = manual ?? throw new ArgumentNullException(nameof(manual));
             this.expander = expander;
             executableResolver = new ExecutableResolver(vfs);
         }
@@ -157,6 +162,11 @@ namespace Siegebox.Shell
 
             if (commands.TryGet(argv[0], out var command))
             {
+                if (RequestsHelp(arguments) && manual.TryGet(argv[0], out var page))
+                {
+                    return new MessageProcess(context, page.Synopsis + "\n", FileDescriptorTable.Stdout, 0);
+                }
+
                 var elevated = executableResolver.Resolve(argv[0], session.Credentials);
                 var effectiveContext = elevated is null
                     ? context
@@ -190,6 +200,19 @@ namespace Siegebox.Shell
             {
                 pipes[index].CloseWrite();
             }
+        }
+
+        private static bool RequestsHelp(IReadOnlyList<string> arguments)
+        {
+            for (var index = 0; index < arguments.Count; index++)
+            {
+                if (arguments[index] == "--help")
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IReadOnlyList<string> ArgumentsOf(IReadOnlyList<string> argv)
