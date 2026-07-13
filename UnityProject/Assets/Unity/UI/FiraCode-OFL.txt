@@ -1,0 +1,21 @@
+Fira Code — bundled monospace UI font for Siegebox
+==================================================
+
+File: FiraCode-Regular.ttf
+Family: Fira Code (Regular)
+Copyright (c) 2014, The Fira Code Project Authors
+Source: https://github.com/tonsky/FiraCode
+
+Licensed under the SIL Open Font License, Version 1.1.
+The full license text is available at:
+  https://github.com/tonsky/FiraCode/blob/master/LICENSE
+  https://openfontlicense.org
+
+The SIL OFL permits the font to be bundled, embedded, and redistributed with
+this software free of charge. The font may not be sold on its own, and the
+Reserved Font Name "Fira Code" must not be used on a modified version.
+
+Siegebox uses this font only as the UI Toolkit UI font (see
+UI/UnityDefaultRuntimeTheme.tss `-unity-font-definition`). No glyph outlines
+were modified. Note: UI Toolkit's TextCore renderer does not apply Fira Code's
+programming ligatures, so text renders as a plain fixed-width monospace.

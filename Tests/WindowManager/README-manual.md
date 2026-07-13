@@ -357,13 +357,20 @@ checklist is the live confirmation of the Unity adapters and the reboot.
 > Core (`dotnet test` 654/654); the look itself is accepted here, by eye. A dedicated
 > `Tests/Desktop/README-manual.md` screenshot checklist is formalized in Phase 11.
 
-## Prerequisite — the monospace font (human step)
+## The monospace font (bundled)
 
-- [ ] Import an OFL-licensed monospace `.ttf` (e.g. JetBrains Mono or DejaVu Sans Mono — NOT any
-      Kali/OffSec asset) under `Assets/Unity/UI/`, create a FontAsset, and set the
-      `-unity-font-definition` in `UI/UnityDefaultRuntimeTheme.tss` `:root` (currently a commented
-      placeholder). Until this is done the UI renders in Unity's default font; every check below
-      that mentions the mono font gates on this step.
+Fira Code (SIL OFL 1.1) is bundled at `Assets/Unity/UI/FiraCode-Regular.ttf` (license note in
+`FiraCode-OFL.txt`) and wired as the single UI font via `-unity-font-definition` on the
+`UnityDefaultRuntimeTheme.tss` `:root`, so it is inherited panel-wide including window titlebars.
+The `.tss` references the font by guid; the imported Font's main object id (`fileID 12800000`) is
+constant, so the binding resolves as soon as the editor imports the `.ttf`.
+
+- [ ] Give the Unity editor window focus so it imports `FiraCode-Regular.ttf` (auto-import triggers
+      on focus). Confirm all UI text — output, prompt, window titlebars, the system panel — renders
+      in Fira Code (fixed-width; no programming ligatures, as TextCore does not apply them).
+- [ ] (Optional refinement) If a scaled/crisp SDF is ever wanted, bake a TextCore FontAsset from the
+      `.ttf` (Window ▸ Text ▸ Font Asset Creator) and repoint `-unity-font-definition` at it. Not
+      required — the dynamic Font renders correctly at the terminal's fixed size.
 
 ## Palette & elevation from tokens
 

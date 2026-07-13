@@ -22,6 +22,7 @@
     --sb-accent-blue: rgb(84, 132, 214);
     --sb-accent-amber: rgb(212, 160, 72);
 
-    /* -unity-font-definition: url("project://database/Assets/Unity/UI/<MonoFont> SDF.asset"); assigned in-editor once the OFL mono FontAsset exists */
+    /* Bundled Fira Code (SIL OFL 1.1) as the single UI monospace, inherited panel-wide incl. titlebars. */
+    -unity-font-definition: url("project://database/Assets/Unity/UI/FiraCode-Regular.ttf?fileID=12800000&guid=2dbd36543ab44a0b8f1934d6e138d626&type=3#FiraCode-Regular");
     color: var(--sb-fg);
 }
